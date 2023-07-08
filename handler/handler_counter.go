@@ -1,8 +1,8 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
-	"strconv"
 	"sync/atomic"
 )
 
@@ -12,5 +12,5 @@ var (
 
 func Count(w http.ResponseWriter, r *http.Request) {
 	new := atomic.AddInt64(&count, 1)
-	w.Write([]byte(strconv.FormatInt(new, 10)))
+	fmt.Fprintf(w, "%d", new)
 }

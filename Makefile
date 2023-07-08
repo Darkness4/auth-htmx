@@ -25,7 +25,7 @@ run:
 
 .PHONY: watch
 watch:
-	gow -e=go,mod,html,tmpl run ./main.go
+	gow -e=go,mod,html,tmpl,env,local run ./main.go
 
 .PHONY: lint
 lint: $(golint)

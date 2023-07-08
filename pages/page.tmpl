@@ -6,7 +6,7 @@
 <main>
   <div>This is the main page.</div>
 
-  <button hx-post="/count" hx-swap="innerHTML">Click on me!</button>
+  {{ template "AuthCard" . }}
 
   <div hx-boost="true">
     <a href="/counter">Go To Counter.</a>
