@@ -116,9 +116,26 @@ var app = &cli.App{
 		r.Use(hlog.NewHandler(log.Logger))
 		r.Use(j.AuthMiddleware)
 
+		// Auth Guard
+		r.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				_, isAuth := r.Context().Value(jwt.ClaimsContextKey{}).(*jwt.Claims)
+
+				if !isAuth {
+					switch r.URL.Path {
+					case "/counter":
+						http.Error(w, "unauthorized", http.StatusUnauthorized)
+						return
+					}
+				}
+
+				next.ServeHTTP(w, r)
+			})
+		})
+
+		// DB
 		d, err := sql.Open("sqlite", dbFile)
 		if err != nil {
-			log.Err(err)
 			log.Error().Err(err).Msg("db failed")
 			return err
 		}
@@ -153,6 +170,8 @@ var app = &cli.App{
 				userName = claims.UserName
 				userID = claims.UserID
 			}
+
+			// Check if SSR
 			if r.Header.Get("Hx-Request") != "true" {
 				// Initial Rendering
 				t, err := template.ParseFS(html, "base.html", path, "components/*")
