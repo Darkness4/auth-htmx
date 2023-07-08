@@ -11,6 +11,7 @@ import (
 	"embed"
 
 	"github.com/Darkness4/auth-htmx/handler"
+	"github.com/Darkness4/auth-htmx/jwt"
 	"github.com/Darkness4/auth-htmx/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/csrf"
@@ -95,44 +96,69 @@ var app = &cli.App{
 		r := chi.NewRouter()
 		r.Use(hlog.NewHandler(log.Logger))
 
+		// Auth
+		j := jwt.Service{
+			SecretKey: []byte(jwtSecret),
+		}
 		auth := handler.AuthenticationService{
+			JWT:              j,
 			AuthorizationURL: oauthAuthorizeURL,
 			AccessTokenURL:   oauthAccessTokenURL,
 			ClientID:         oauthClientID,
 			ClientSecret:     oauthSecret,
 			RedirectURI:      fmt.Sprintf("%s/callback", oauthURL),
 		}
+		r.Get("/login", auth.Login())
+		r.Get("/callback", auth.CallBack())
+
+		// Backend
+		r.Post("/count", handler.Count())
 
 		// SSR
-		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+		var renderFn http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
 			path := filepath.Clean(r.URL.Path)
 			path = filepath.Clean(fmt.Sprintf("pages/%s/page.tmpl", path))
 
+			var userName, userID string
+			if claims, ok := r.Context().Value(jwt.ClaimsContextKey{}).(*jwt.Claims); ok {
+				userName = claims.UserName
+				userID = claims.UserID
+			}
 			if r.Header.Get("Hx-Request") != "true" {
 				// Initial Rendering
 				t, err := template.ParseFS(html, "base.html", path, "components/*")
 				if err != nil {
 					// The page doesn't exist
-					w.WriteHeader(http.StatusNotFound)
-					fmt.Fprint(w, "404 Page Not Found")
+					http.Error(w, "not found", http.StatusNotFound)
 					return
 				}
-				t.ExecuteTemplate(w, "base", nil)
+				if err := t.ExecuteTemplate(w, "base", struct {
+					UserName string
+					UserID   string
+				}{
+					UserName: userName,
+					UserID:   userID,
+				}); err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
 			} else {
 				// SSR
 				t := template.Must(
 					template.ParseFS(html, "base.htmx", path, "components/*"),
 				)
-				t.ExecuteTemplate(w, "base", nil)
+				if err := t.ExecuteTemplate(w, "base", struct {
+					UserName string
+					UserID   string
+				}{
+					UserName: userName,
+					UserID:   userID,
+				}); err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
 			}
-		})
+		}
+		r.Get("/*", j.AuthMiddleware(renderFn))
 
-		// Auth
-		r.Get("/login", auth.Login())
-		r.Get("/callback", auth.CallBack())
-
-		// Backend
-		r.Post("/count", handler.Count)
 		log.Info().Msg("listening")
 		return http.ListenAndServe(":3000", csrf.Protect(key)(r))
 	},

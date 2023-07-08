@@ -4,12 +4,15 @@
 
 {{define "body"}}
 <main>
-  <div>This is the main page.</div>
-
+  {{if not .UserID }}
   {{ template "AuthCard" . }}
-
-  <div hx-boost="true">
-    <a href="/counter">Go To Counter.</a>
-  </div>
+  {{ else }}
+  <article>
+    <div>Hello {{ .UserName }}!</div>
+    <div hx-boost="true">
+      <a href="/counter">Go To Counter.</a>
+    </div>
+  </article>
+  {{ end }}
 </main>
 {{ end }}

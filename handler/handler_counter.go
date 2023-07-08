@@ -10,7 +10,9 @@ var (
 	count int64
 )
 
-func Count(w http.ResponseWriter, r *http.Request) {
-	new := atomic.AddInt64(&count, 1)
-	fmt.Fprintf(w, "%d", new)
+func Count() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		new := atomic.AddInt64(&count, 1)
+		fmt.Fprintf(w, "%d", new)
+	}
 }

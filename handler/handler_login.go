@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/Darkness4/auth-htmx/jwt"
 	"github.com/Darkness4/auth-htmx/utils"
 	"github.com/gorilla/csrf"
 )
@@ -16,6 +17,7 @@ const (
 )
 
 type AuthenticationService struct {
+	JWT              jwt.Service
 	AuthorizationURL string
 	AccessTokenURL   string
 	ClientID         string
@@ -23,7 +25,7 @@ type AuthenticationService struct {
 	RedirectURI      string
 }
 
-func (s *AuthenticationService) Login() func(w http.ResponseWriter, r *http.Request) {
+func (s *AuthenticationService) Login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := csrf.Token(r)
 		params := url.Values{
@@ -37,7 +39,7 @@ func (s *AuthenticationService) Login() func(w http.ResponseWriter, r *http.Requ
 		cookie := &http.Cookie{
 			Name:     "csrf_token",
 			Value:    token,
-			Expires:  time.Now().Add(24 * time.Hour), // Set expiration time as needed
+			Expires:  time.Now().Add(1 * time.Minute), // Set expiration time as needed
 			HttpOnly: true,
 		}
 		http.SetCookie(w, cookie)
@@ -45,43 +47,43 @@ func (s *AuthenticationService) Login() func(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (s *AuthenticationService) CallBack() func(w http.ResponseWriter, r *http.Request) {
+func (s *AuthenticationService) CallBack() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		val, err := url.ParseQuery(r.URL.RawQuery)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		code := val.Get("code")
 		state := val.Get("state")
 		expectedState, err := r.Cookie("csrf_token")
 		if err == http.ErrNoCookie {
-			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprint(w, "no csrf cookie error")
+			http.Error(w, "no csrf cookie error", http.StatusUnauthorized)
 			return
 		}
 		if state != expectedState.Value {
-			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprint(w, "csrf error")
+			http.Error(w, "csrf error", http.StatusUnauthorized)
 			return
 		}
 
 		accessToken, err := s.getAccessToken(s.ClientID, s.ClientSecret, code)
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprint(w, err)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
 		user, err := getCurrentUser(accessToken)
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprint(w, err)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
-		fmt.Fprintf(w, "logged as %s", user.Login)
+		if err := s.JWT.GenerateTokenAndStore(w, fmt.Sprintf("github:%d", user.ID), user.Login); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
 
