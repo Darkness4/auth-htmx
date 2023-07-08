@@ -3,15 +3,16 @@ module github.com/Darkness4/auth-htmx
 go 1.20
 
 require (
+	github.com/friendsofgo/errors v0.9.2
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/golang-jwt/jwt/v5 v5.0.0
-	github.com/golang-migrate/migrate v3.5.4+incompatible
 	github.com/golang-migrate/migrate/v4 v4.16.2
 	github.com/gorilla/csrf v1.7.1
 	github.com/joho/godotenv v1.5.1
 	github.com/rs/zerolog v1.29.1
 	github.com/urfave/cli/v2 v2.25.7
 	github.com/volatiletech/sqlboiler/v4 v4.14.2
+	github.com/volatiletech/strmangle v0.0.4
 )
 
 require (
@@ -68,7 +69,6 @@ require (
 	github.com/envoyproxy/go-control-plane v0.10.3 // indirect
 	github.com/envoyproxy/protoc-gen-validate v0.6.13 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.5+incompatible // indirect
-	github.com/friendsofgo/errors v0.9.2 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.1 // indirect
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
@@ -151,7 +151,6 @@ require (
 	github.com/spf13/viper v1.12.0 // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
 	github.com/volatiletech/inflect v0.0.1 // indirect
-	github.com/volatiletech/strmangle v0.0.4 // indirect
 	github.com/xanzy/go-gitlab v0.15.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.1 // indirect
