@@ -44,7 +44,7 @@ var (
 var app = &cli.App{
 	Name:    "auth-htmx",
 	Version: version,
-	Usage:   "Overwatch the job scheduling and register the compute to the Deepsquare Grid.",
+	Usage:   "Demo of Auth and HTMX.",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "csrf.secret",
