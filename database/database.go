@@ -1,0 +1,60 @@
+package database
+
+import (
+	"database/sql"
+	"embed"
+	"fmt"
+
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/sqlite"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
+	"github.com/rs/zerolog/log"
+)
+
+//go:embed migrations/*.sql
+var migrations embed.FS
+
+func InitialMigration(db *sql.DB) error {
+	dbDriver, err := sqlite.WithInstance(db, &sqlite.Config{
+		NoTxWrap: true,
+	})
+	if err != nil {
+		log.Err(err).Msg("failed to attach db")
+		return err
+	}
+	iofsDriver, err := iofs.New(migrations, "migrations")
+	if err != nil {
+		log.Err(err).Msg("failed to open migrations")
+		return err
+	}
+	defer iofsDriver.Close()
+	m, err := migrate.NewWithInstance(
+		"iofs",
+		iofsDriver,
+		"sqlite",
+		dbDriver,
+	)
+	if err != nil {
+		log.Err(err).Msg("failed to create new db instance")
+		return err
+	}
+	if version, dirty, err := m.Version(); err == migrate.ErrNilVersion {
+		log.Warn().Msg("No migrations detected. Attempting initial migration...")
+		if err = m.Up(); err != nil {
+			panic(fmt.Errorf("failed to migrate db: %w", err))
+		}
+		log.Info().Msg("DB migrated.")
+	} else if dirty {
+		panic("db is in dirty state.")
+	} else if err != nil {
+		panic(fmt.Errorf("failed to fetch DB version: %w", err))
+	} else {
+		log.Info().Uint("version", version).Msg("DB version detected.")
+		if new, err := iofsDriver.Next(version); err != nil {
+			log.Info().Uint("version", version).Msg("Latest DB version.")
+		} else {
+			log.Warn().Uint("actual", version).Uint("new", new).Msg("New DB version detected.")
+		}
+	}
+	return nil
+}

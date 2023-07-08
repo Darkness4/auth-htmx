@@ -1,0 +1,8 @@
+output = "database/models"
+add-soft-deletes = false
+wipe = true
+no-tests = true
+
+[sqlite3]
+dbname = "db.sqlite3"
+blacklist = ["schema_migrations"]

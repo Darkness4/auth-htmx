@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"html/template"
@@ -10,6 +11,8 @@ import (
 
 	"embed"
 
+	"github.com/Darkness4/auth-htmx/database"
+	"github.com/Darkness4/auth-htmx/database/counter"
 	"github.com/Darkness4/auth-htmx/handler"
 	"github.com/Darkness4/auth-htmx/jwt"
 	"github.com/Darkness4/auth-htmx/utils"
@@ -34,6 +37,8 @@ var (
 	oauthAuthorizeURL   string
 	oauthURL            string
 	oauthAccessTokenURL string
+
+	dbFile string
 )
 
 var app = &cli.App{
@@ -89,17 +94,40 @@ var app = &cli.App{
 			Value:       "http://localhost:3000",
 			EnvVars:     []string{"OAUTH_URL"},
 		},
+		&cli.StringFlag{
+			Name:        "db.path",
+			Value:       "./db.sqlite3",
+			Destination: &dbFile,
+			Usage:       "SQLite3 database file path.",
+			EnvVars:     []string{"DB_PATH"},
+		},
 	},
 	Suggest: true,
 	Action: func(cCtx *cli.Context) error {
 		log.Level(zerolog.DebugLevel)
-		r := chi.NewRouter()
-		r.Use(hlog.NewHandler(log.Logger))
 
-		// Auth
+		// JWT
 		j := jwt.Service{
 			SecretKey: []byte(jwtSecret),
 		}
+
+		// Router
+		r := chi.NewRouter()
+		r.Use(hlog.NewHandler(log.Logger))
+		r.Use(j.AuthMiddleware)
+
+		d, err := sql.Open("sqlite", dbFile)
+		if err != nil {
+			log.Err(err)
+			log.Error().Err(err).Msg("db failed")
+			return err
+		}
+		if err := database.InitialMigration(d); err != nil {
+			log.Error().Err(err).Msg("db migration failed")
+			return err
+		}
+
+		// Auth
 		auth := handler.AuthenticationService{
 			JWT:              j,
 			AuthorizationURL: oauthAuthorizeURL,
@@ -112,7 +140,8 @@ var app = &cli.App{
 		r.Get("/callback", auth.CallBack())
 
 		// Backend
-		r.Post("/count", handler.Count())
+		cr := counter.NewRepository(d)
+		r.Post("/count", handler.Count(cr))
 
 		// SSR
 		var renderFn http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
@@ -133,11 +162,13 @@ var app = &cli.App{
 					return
 				}
 				if err := t.ExecuteTemplate(w, "base", struct {
-					UserName string
-					UserID   string
+					UserName  string
+					UserID    string
+					CSRFToken string
 				}{
-					UserName: userName,
-					UserID:   userID,
+					UserName:  userName,
+					UserID:    userID,
+					CSRFToken: csrf.Token(r),
 				}); err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 				}
@@ -147,17 +178,19 @@ var app = &cli.App{
 					template.ParseFS(html, "base.htmx", path, "components/*"),
 				)
 				if err := t.ExecuteTemplate(w, "base", struct {
-					UserName string
-					UserID   string
+					UserName  string
+					UserID    string
+					CSRFToken string
 				}{
-					UserName: userName,
-					UserID:   userID,
+					UserName:  userName,
+					UserID:    userID,
+					CSRFToken: csrf.Token(r),
 				}); err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 				}
 			}
 		}
-		r.Get("/*", j.AuthMiddleware(renderFn))
+		r.Get("/*", renderFn)
 
 		log.Info().Msg("listening")
 		return http.ListenAndServe(":3000", csrf.Protect(key)(r))
@@ -168,6 +201,6 @@ func main() {
 	_ = godotenv.Load(".env.local")
 	_ = godotenv.Load(".env")
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal().AnErr("err", err).Msg("app crashed")
+		log.Fatal().Err(err).Msg("app crashed")
 	}
 }

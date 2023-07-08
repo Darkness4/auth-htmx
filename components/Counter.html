@@ -1,0 +1,9 @@
+{{define "Counter"}}
+<button
+  hx-post="/count"
+  hx-swap="innerHTML"
+  hx-headers='{"X-CSRF-Token": "{{ .CSRFToken }}"}'
+>
+  Click on me!
+</button>
+{{ end }}

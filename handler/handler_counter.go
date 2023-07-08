@@ -3,16 +3,23 @@ package handler
 import (
 	"fmt"
 	"net/http"
-	"sync/atomic"
+
+	"github.com/Darkness4/auth-htmx/database/counter"
+	"github.com/Darkness4/auth-htmx/jwt"
 )
 
-var (
-	count int64
-)
-
-func Count() http.HandlerFunc {
+func Count(counter counter.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		new := atomic.AddInt64(&count, 1)
+		claims, ok := r.Context().Value(jwt.ClaimsContextKey{}).(*jwt.Claims)
+		if !ok {
+			http.Error(w, "not allowed", http.StatusUnauthorized)
+			return
+		}
+		new, err := counter.Inc(r.Context(), claims.UserID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		fmt.Fprintf(w, "%d", new)
 	}
 }

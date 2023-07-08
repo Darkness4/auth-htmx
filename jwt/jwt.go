@@ -95,7 +95,7 @@ func (s *Service) GenerateTokenAndStore(
 	return nil
 }
 
-func (s *Service) AuthMiddleware(next http.Handler) http.HandlerFunc {
+func (s *Service) AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get the JWT token from the request header
 		cookie, err := r.Cookie(TokenCookieKey)
@@ -107,7 +107,7 @@ func (s *Service) AuthMiddleware(next http.Handler) http.HandlerFunc {
 		// Verify the JWT token
 		claims, err := s.VerifyToken(cookie.Value)
 		if err != nil {
-			log.Error().AnErr("err", err).Msg("token verification failed")
+			log.Error().Err(err).Msg("token verification failed")
 			next.ServeHTTP(w, r)
 			return
 		}

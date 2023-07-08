@@ -15,6 +15,14 @@ ifeq ($(golint),)
 golint := $(shell go env GOPATH)/bin/golangci-lint
 endif
 
+ifeq ($(sqlboiler),)
+sqlboiler := $(shell go env GOPATH)/bin/sqlboiler
+endif
+
+ifeq ($(migrate),)
+migrate := $(shell go env GOPATH)/bin/migrate
+endif
+
 .PHONY: bin/auth-htmx
 bin/auth-htmx: $(GO_SRCS)
 	go build -ldflags "-s -w -X main.version=${VERSION}" -o "$@" ./main.go
@@ -34,6 +42,29 @@ lint: $(golint)
 .PHONY: clean
 clean:
 	rm -rf bin/
+
+.PHONY: sql
+sql:
+	$(sqlboiler) sqlite3
+
+.PHONY: migration
+migration:
+	$(migrate) create -seq -ext sql -dir db/migrations $(MIGRATION_NAME)
+
+.PHONY: up
+up: $(MIGRATIONS)
+	$(migrate) -path database/migrations -database sqlite3://db.sqlite3?x-no-tx-wrap=true up
+
+.PHONY: drop
+drop:
+	$(migrate) -path database/migrations -database sqlite3://db.sqlite3?x-no-tx-wrap=true drop -f
+
+$(migrate):
+	go install -tags 'sqlite3' github.com/golang-migrate/migrate/v4/cmd/migrate
+
+$(sqlboiler):
+	go install github.com/volatiletech/sqlboiler/v4
+	go install github.com/volatiletech/sqlboiler/v4/drivers/sqlboiler-sqlite3
 
 $(gow):
 	go install github.com/mitranim/gow@latest
