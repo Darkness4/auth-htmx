@@ -1,0 +1,11 @@
+{{define "head"}}
+<title>Home</title>
+{{ end }}
+
+{{define "body"}}
+<main>
+  <div>This is the main page.</div>
+
+  <button hx-post="/count" hx-swap="innerHTML">Click on me!</button>
+</main>
+{{ end }}
