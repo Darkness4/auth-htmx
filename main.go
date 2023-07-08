@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"net/http/httputil"
+	"path/filepath"
 
 	"embed"
 
@@ -15,38 +15,29 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const debug = false
-
-//go:embed pages/* base.html
+//go:embed pages/* base.html base.htmx
 var html embed.FS
 
 func main() {
 	log.Level(zerolog.DebugLevel)
 	r := chi.NewRouter()
 	r.Use(hlog.NewHandler(log.Logger))
-	if debug {
-		r.Use(func(next http.Handler) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				log := hlog.FromRequest(r)
-				log.Info().
-					Timestamp().
-					Fields(map[string]interface{}{
-						"remote_ip": r.RemoteAddr,
-						"url":       r.URL.Path,
-						"proto":     r.Proto,
-						"method":    r.Method,
-					}).
-					Msg("incoming_request")
-				body, _ := httputil.DumpRequest(r, true)
-				fmt.Println(string(body))
+	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+		path := filepath.Clean(r.URL.Path)
+		path = filepath.Clean(fmt.Sprintf("pages/%s/page.tmpl", path))
 
-				next.ServeHTTP(w, r)
-			})
-		})
-	}
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		t := template.Must(template.ParseFS(html, "base.html", "pages/page.tmpl"))
-		t.ExecuteTemplate(w, "base", nil)
+		if r.Header.Get("Hx-Request") != "true" {
+			t := template.Must(
+				template.ParseFS(html, "base.html", path),
+			)
+			t.ExecuteTemplate(w, "base", nil)
+		} else {
+			t := template.Must(
+				template.ParseFS(html, "base.htmx", path),
+			)
+			t.ExecuteTemplate(w, "base", nil)
+		}
+
 	})
 	r.Post("/count", handler.Count)
 	log.Info().Msg("listening")
