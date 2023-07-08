@@ -2,8 +2,8 @@ GO_SRCS := $(shell find . -type f -name '*.go' -a ! \( -name 'zz_generated*' -o 
 GO_TESTS := $(shell find . -type f -name '*_test.go')
 TAG_NAME = $(shell git describe --tags --abbrev=0 --exact-match 2>/dev/null)
 TAG_NAME_DEV = $(shell git describe --tags --abbrev=0 2>/dev/null)
-VERSION_CORE = $(shell echo $(TAG_NAME)')
-VERSION_CORE_DEV = $(shell echo $(TAG_NAME_DEV)')
+VERSION_CORE = $(shell echo $(TAG_NAME))
+VERSION_CORE_DEV = $(shell echo $(TAG_NAME_DEV))
 GIT_COMMIT = $(shell git rev-parse --short=7 HEAD)
 VERSION = $(or $(and $(TAG_NAME),$(VERSION_CORE)),$(and $(TAG_NAME_DEV),$(VERSION_CORE_DEV)-dev),$(GIT_COMMIT))
 
