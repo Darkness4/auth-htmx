@@ -87,6 +87,16 @@ func (s *AuthenticationService) CallBack() http.HandlerFunc {
 	}
 }
 
+func (s *AuthenticationService) Logout() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := s.JWT.ForgetToken(w, r); err != nil {
+			http.Error(w, "failed to forget token", http.StatusInternalServerError)
+			return
+		}
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	}
+}
+
 type accessTokenResponse struct {
 	AccessToken string `json:"access_token"`
 	Scope       string `json:"scope"`

@@ -154,6 +154,7 @@ var app = &cli.App{
 			RedirectURI:      fmt.Sprintf("%s/callback", oauthURL),
 		}
 		r.Get("/login", auth.Login())
+		r.Get("/logout", auth.Logout())
 		r.Get("/callback", auth.CallBack())
 
 		// Backend

@@ -95,6 +95,17 @@ func (s *Service) GenerateTokenAndStore(
 	return nil
 }
 
+func (s *Service) ForgetToken(w http.ResponseWriter, r *http.Request) error {
+	cookie, err := r.Cookie(TokenCookieKey)
+	if err != nil {
+		return err
+	}
+
+	cookie.Expires = time.Now().Add(-1 * time.Hour)
+	http.SetCookie(w, cookie)
+	return nil
+}
+
 func (s *Service) AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get the JWT token from the request header

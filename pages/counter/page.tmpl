@@ -1,17 +1,29 @@
 {{define "head"}}
-<title>Counter</title>
+<title>Counter - Auth HTMX</title>
 {{ end }}
 
 {{define "body"}}
+<header>
+  {{ template "Nav" . }}
+</header>
+
 <main>
   <article>
-    <div>This is the counter page.</div>
+    <header>
+      <div>This is the counter page.</div>
+    </header>
 
-    {{ template "Counter" . }}
+    <main>
+      {{ template "Counter" . }}
+    </main>
 
-    <div hx-boost="true">
-      <a href="/">Go To Home.</a>
-    </div>
+    <footer>
+      <nav hx-boost="true">
+        <ul>
+          <li><a href="/">Go To Home</a></li>
+        </ul>
+      </nav>
+    </footer>
   </article>
 </main>
 {{ end }}

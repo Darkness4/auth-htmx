@@ -1,0 +1,15 @@
+{{define "Nav"}}
+<nav hx-boost="true">
+  <ul>
+    <li>
+      <strong><a href="/">Auth HTMX</a></strong>
+    </li>
+  </ul>
+  {{if .UserID }}
+  <ul>
+    <li><a href="/counter">Counter</a></li>
+    <li><a href="/logout">Logout</a></li>
+  </ul>
+  {{ end }}
+</nav>
+{{ end }}
