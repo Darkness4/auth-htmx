@@ -119,7 +119,7 @@ var app = &cli.App{
 		// Auth Guard
 		r.Use(func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				_, isAuth := r.Context().Value(jwt.ClaimsContextKey{}).(*jwt.Claims)
+				_, isAuth := jwt.GetClaimsFromRequest(r)
 
 				if !isAuth {
 					switch r.URL.Path {
@@ -161,53 +161,42 @@ var app = &cli.App{
 		cr := counter.NewRepository(d)
 		r.Post("/count", handler.Count(cr))
 
-		// SSR
+		// Pages rendering
 		var renderFn http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
 			path := filepath.Clean(r.URL.Path)
 			path = filepath.Clean(fmt.Sprintf("pages/%s/page.tmpl", path))
 
 			var userName, userID string
-			if claims, ok := r.Context().Value(jwt.ClaimsContextKey{}).(*jwt.Claims); ok {
+			if claims, ok := jwt.GetClaimsFromRequest(r); ok {
 				userName = claims.UserName
 				userID = claims.UserID
 			}
 
 			// Check if SSR
+			var base string
 			if r.Header.Get("Hx-Request") != "true" {
 				// Initial Rendering
-				t, err := template.ParseFS(html, "base.html", path, "components/*")
-				if err != nil {
-					// The page doesn't exist
-					http.Error(w, "not found", http.StatusNotFound)
-					return
-				}
-				if err := t.ExecuteTemplate(w, "base", struct {
-					UserName  string
-					UserID    string
-					CSRFToken string
-				}{
-					UserName:  userName,
-					UserID:    userID,
-					CSRFToken: csrf.Token(r),
-				}); err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-				}
+				base = "base.html"
 			} else {
 				// SSR
-				t := template.Must(
-					template.ParseFS(html, "base.htmx", path, "components/*"),
-				)
-				if err := t.ExecuteTemplate(w, "base", struct {
-					UserName  string
-					UserID    string
-					CSRFToken string
-				}{
-					UserName:  userName,
-					UserID:    userID,
-					CSRFToken: csrf.Token(r),
-				}); err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-				}
+				base = "base.htmx"
+			}
+			t, err := template.ParseFS(html, base, path, "components/*")
+			if err != nil {
+				// The page doesn't exist
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			}
+			if err := t.ExecuteTemplate(w, "base", struct {
+				UserName  string
+				UserID    string
+				CSRFToken string
+			}{
+				UserName:  userName,
+				UserID:    userID,
+				CSRFToken: csrf.Token(r),
+			}); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 		}
 		r.Get("/*", renderFn)

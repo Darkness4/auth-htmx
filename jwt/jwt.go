@@ -13,7 +13,7 @@ import (
 const TokenCookieKey = "session_token"
 const expiresDuration = 24 * time.Hour
 
-type ClaimsContextKey struct{}
+type claimsContextKey struct{}
 
 type Claims struct {
 	jwt.RegisteredClaims
@@ -124,7 +124,12 @@ func (s *Service) AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		// Store the claims in the request context for further use
-		ctx := context.WithValue(r.Context(), ClaimsContextKey{}, claims)
+		ctx := context.WithValue(r.Context(), claimsContextKey{}, claims)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func GetClaimsFromRequest(r *http.Request) (claims *Claims, ok bool) {
+	claims, ok = r.Context().Value(claimsContextKey{}).(*Claims)
+	return claims, ok
 }

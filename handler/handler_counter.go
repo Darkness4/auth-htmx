@@ -10,7 +10,7 @@ import (
 
 func Count(counter counter.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		claims, ok := r.Context().Value(jwt.ClaimsContextKey{}).(*jwt.Claims)
+		claims, ok := jwt.GetClaimsFromRequest(r)
 		if !ok {
 			http.Error(w, "not allowed", http.StatusUnauthorized)
 			return
