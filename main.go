@@ -11,6 +11,7 @@ import (
 
 	"embed"
 
+	"github.com/Darkness4/auth-htmx/auth"
 	"github.com/Darkness4/auth-htmx/database"
 	"github.com/Darkness4/auth-htmx/database/counter"
 	"github.com/Darkness4/auth-htmx/handler"
@@ -23,6 +24,7 @@ import (
 	"github.com/rs/zerolog/hlog"
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/oauth2"
 )
 
 var (
@@ -111,15 +113,30 @@ var app = &cli.App{
 			SecretKey: []byte(jwtSecret),
 		}
 
+		// Auth
+		authService := auth.Auth{
+			JWT: j,
+			Config: oauth2.Config{
+				ClientID:     oauthClientID,
+				ClientSecret: oauthSecret,
+				Scopes:       []string{"read:user", "user:email"},
+				RedirectURL:  fmt.Sprintf("%s/callback", oauthURL),
+				Endpoint: oauth2.Endpoint{
+					AuthURL:  oauthAuthorizeURL,
+					TokenURL: oauthAccessTokenURL,
+				},
+			},
+		}
+
 		// Router
 		r := chi.NewRouter()
 		r.Use(hlog.NewHandler(log.Logger))
-		r.Use(j.AuthMiddleware)
+		r.Use(authService.Middleware)
 
 		// Auth Guard
 		r.Use(func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				_, isAuth := jwt.GetClaimsFromRequest(r)
+				_, isAuth := auth.GetClaimsFromRequest(r)
 
 				if !isAuth {
 					switch r.URL.Path {
@@ -145,17 +162,9 @@ var app = &cli.App{
 		}
 
 		// Auth
-		auth := handler.AuthenticationService{
-			JWT:              j,
-			AuthorizationURL: oauthAuthorizeURL,
-			AccessTokenURL:   oauthAccessTokenURL,
-			ClientID:         oauthClientID,
-			ClientSecret:     oauthSecret,
-			RedirectURI:      fmt.Sprintf("%s/callback", oauthURL),
-		}
-		r.Get("/login", auth.Login())
-		r.Get("/logout", auth.Logout())
-		r.Get("/callback", auth.CallBack())
+		r.Get("/login", authService.Login())
+		r.Get("/logout", authService.Logout())
+		r.Get("/callback", authService.CallBack())
 
 		// Backend
 		cr := counter.NewRepository(d)
@@ -167,7 +176,7 @@ var app = &cli.App{
 			path = filepath.Clean(fmt.Sprintf("pages/%s/page.tmpl", path))
 
 			var userName, userID string
-			if claims, ok := jwt.GetClaimsFromRequest(r); ok {
+			if claims, ok := auth.GetClaimsFromRequest(r); ok {
 				userName = claims.UserName
 				userID = claims.UserID
 			}

@@ -1,19 +1,13 @@
 package jwt
 
 import (
-	"context"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/rs/zerolog/log"
 )
 
-const TokenCookieKey = "session_token"
-const expiresDuration = 24 * time.Hour
-
-type claimsContextKey struct{}
+const ExpiresDuration = 24 * time.Hour
 
 type Claims struct {
 	jwt.RegisteredClaims
@@ -29,7 +23,7 @@ func (s *Service) GenerateToken(userID string, userName string) (string, error) 
 	// Create the token claims
 	claims := &Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiresDuration)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(ExpiresDuration)),
 		},
 		UserID:   userID,
 		UserName: userName,
@@ -73,63 +67,4 @@ func (s *Service) VerifyToken(tokenString string) (*Claims, error) {
 	}
 
 	return nil, fmt.Errorf("invalid token")
-}
-
-func (s *Service) GenerateTokenAndStore(
-	w http.ResponseWriter,
-	userID string,
-	userName string,
-) error {
-	token, err := s.GenerateToken(userID, userName)
-	if err != nil {
-		return err
-	}
-
-	cookie := &http.Cookie{
-		Name:     TokenCookieKey,
-		Value:    token,
-		Expires:  time.Now().Add(expiresDuration),
-		HttpOnly: true,
-	}
-	http.SetCookie(w, cookie)
-	return nil
-}
-
-func (s *Service) ForgetToken(w http.ResponseWriter, r *http.Request) error {
-	cookie, err := r.Cookie(TokenCookieKey)
-	if err != nil {
-		return err
-	}
-
-	cookie.Expires = time.Now().Add(-1 * time.Hour)
-	http.SetCookie(w, cookie)
-	return nil
-}
-
-func (s *Service) AuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Get the JWT token from the request header
-		cookie, err := r.Cookie(TokenCookieKey)
-		if err != nil {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		// Verify the JWT token
-		claims, err := s.VerifyToken(cookie.Value)
-		if err != nil {
-			log.Error().Err(err).Msg("token verification failed")
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		// Store the claims in the request context for further use
-		ctx := context.WithValue(r.Context(), claimsContextKey{}, claims)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-func GetClaimsFromRequest(r *http.Request) (claims *Claims, ok bool) {
-	claims, ok = r.Context().Value(claimsContextKey{}).(*Claims)
-	return claims, ok
 }

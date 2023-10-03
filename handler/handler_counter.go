@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Darkness4/auth-htmx/auth"
 	"github.com/Darkness4/auth-htmx/database/counter"
-	"github.com/Darkness4/auth-htmx/jwt"
 )
 
 func Count(counter counter.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		claims, ok := jwt.GetClaimsFromRequest(r)
+		claims, ok := auth.GetClaimsFromRequest(r)
 		if !ok {
 			http.Error(w, "not allowed", http.StatusUnauthorized)
 			return
