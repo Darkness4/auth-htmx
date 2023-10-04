@@ -114,7 +114,7 @@ func (a *Auth) CallBack() http.HandlerFunc {
 		var userID, userName string
 		switch provider.Type {
 		case ProviderGitHub:
-			user, err := getCurrentUser(oauth2Token.AccessToken)
+			user, err := getGithubUser(oauth2Token.AccessToken)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
@@ -206,28 +206,28 @@ func GetClaimsFromRequest(r *http.Request) (claims *jwt.Claims, ok bool) {
 	return claims, ok
 }
 
-type user struct {
+type githubUser struct {
 	ID    int    `json:"id"`
 	Login string `json:"login"`
 }
 
-func getCurrentUser(accessToken string) (user, error) {
+func getGithubUser(accessToken string) (githubUser, error) {
 	req, err := http.NewRequest("GET", userURL, nil)
 	if err != nil {
-		return user{}, err
+		return githubUser{}, err
 	}
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 	req.Header.Add("X-GitHub-Api-Version", "2022-11-28")
 	req.Header.Add("Accept", "application/vnd.github+json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return user{}, err
+		return githubUser{}, err
 	}
 	defer resp.Body.Close()
 
-	var u user
+	var u githubUser
 	if err := json.NewDecoder(resp.Body).Decode(&u); err != nil {
-		return user{}, err
+		return githubUser{}, err
 	}
 	return u, nil
 }
