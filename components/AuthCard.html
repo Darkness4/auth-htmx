@@ -5,7 +5,7 @@
   </hgroup>
   {{- range $name, $provider := .Providers }}
   <a type="button" id="{{ $name }}-sign-in" href="/login?provider={{ $name }}"
-    >Sign In with {{ $provider.Name }}</a
+    >Sign In with {{ $provider.DisplayName }}</a
   >
   {{- end }}
 </article>
