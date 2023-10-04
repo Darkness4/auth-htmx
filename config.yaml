@@ -1,0 +1,11 @@
+providers:
+  - name: GitHub
+    type: github
+    clientID: 01234567890123456789
+    clientSecret: 0123456789012345678901234567890123456789
+  - name: OIDC
+    type: oidc
+    clientID: 01234567890123456789
+    clientSecret: 0123456789012345678901234567890123456789
+    ## This points to "https://accounts.google.com/.well-known/openid-configuration
+    endpoint: https://accounts.google.com

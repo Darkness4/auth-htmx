@@ -24,7 +24,7 @@ import (
 	"github.com/rs/zerolog/hlog"
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v2"
-	"golang.org/x/oauth2"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -34,11 +34,8 @@ var (
 	key       []byte
 	jwtSecret string
 
-	oauthClientID       string
-	oauthSecret         string
-	oauthAuthorizeURL   string
-	oauthURL            string
-	oauthAccessTokenURL string
+	configPath string
+	publicURL  string
 
 	dbFile string
 )
@@ -64,37 +61,19 @@ var app = &cli.App{
 			EnvVars:     []string{"JWT_SECRET"},
 		},
 		&cli.StringFlag{
-			Name:        "oauth.clientid",
-			Usage:       "A unique string secret",
-			Destination: &oauthClientID,
-			EnvVars:     []string{"OAUTH_CLIENTID"},
+			Name:        "config.path",
+			Usage:       "Path of the configuration file.",
+			Destination: &configPath,
+			Value:       "./config.yaml",
+			Aliases:     []string{"c"},
+			EnvVars:     []string{"CONFIG_PATH"},
 		},
 		&cli.StringFlag{
-			Name:        "oauth.secret",
-			Usage:       "A unique string secret",
-			Destination: &oauthSecret,
-			EnvVars:     []string{"OAUTH_SECRET"},
-		},
-		&cli.StringFlag{
-			Name:        "oauth.authorize.url",
-			Usage:       "An URL to request an access key.",
-			Destination: &oauthAuthorizeURL,
-			Value:       "https://github.com/login/oauth/authorize",
-			EnvVars:     []string{"OAUTH_AUTHORIZE_URL"},
-		},
-		&cli.StringFlag{
-			Name:        "oauth.accesstoken.url",
-			Usage:       "An URL to fetch the access token.",
-			Destination: &oauthAccessTokenURL,
-			Value:       "https://github.com/login/oauth/access_token",
-			EnvVars:     []string{"OAUTH_ACCESSTOKEN_URL"},
-		},
-		&cli.StringFlag{
-			Name:        "oauth.url",
+			Name:        "public-url",
 			Usage:       "An URL pointing to the server.",
-			Destination: &oauthURL,
+			Destination: &publicURL,
 			Value:       "http://localhost:3000",
-			EnvVars:     []string{"OAUTH_URL"},
+			EnvVars:     []string{"PUBLIC_URL"},
 		},
 		&cli.StringFlag{
 			Name:        "db.path",
@@ -106,26 +85,37 @@ var app = &cli.App{
 	},
 	Suggest: true,
 	Action: func(cCtx *cli.Context) error {
+		ctx := cCtx.Context
 		log.Level(zerolog.DebugLevel)
+
+		// Parse config
+		var config auth.Config
+		if err := func() error {
+			file, err := os.Open(configPath)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+
+			return yaml.NewDecoder(file).Decode(&config)
+		}(); err != nil {
+			return err
+		}
 
 		// JWT
 		j := jwt.Service{
 			SecretKey: []byte(jwtSecret),
 		}
 
+		providers, err := auth.GenerateProviders(ctx, config, fmt.Sprintf("%s/callback", publicURL))
+		if err != nil {
+			return err
+		}
+
 		// Auth
 		authService := auth.Auth{
-			JWT: j,
-			Config: oauth2.Config{
-				ClientID:     oauthClientID,
-				ClientSecret: oauthSecret,
-				Scopes:       []string{"read:user", "user:email"},
-				RedirectURL:  fmt.Sprintf("%s/callback", oauthURL),
-				Endpoint: oauth2.Endpoint{
-					AuthURL:  oauthAuthorizeURL,
-					TokenURL: oauthAccessTokenURL,
-				},
-			},
+			JWT:       j,
+			Providers: providers,
 		}
 
 		// Router
@@ -200,10 +190,12 @@ var app = &cli.App{
 				UserName  string
 				UserID    string
 				CSRFToken string
+				Providers map[string]auth.Provider
 			}{
 				UserName:  userName,
 				UserID:    userID,
 				CSRFToken: csrf.Token(r),
+				Providers: providers,
 			}); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}

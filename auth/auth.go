@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/Darkness4/auth-htmx/jwt"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gorilla/csrf"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/oauth2"
 )
 
 const (
@@ -23,13 +24,26 @@ const (
 type claimsContextKey struct{}
 
 type Auth struct {
-	JWT jwt.Service
-	oauth2.Config
+	JWT       jwt.Service
+	Providers map[string]Provider
 }
 
 // Login is the handler that redirect to the authentication page of the OAuth Provider.
 func (a *Auth) Login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		val, err := url.ParseQuery(r.URL.RawQuery)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		p := val.Get("provider")
+
+		provider, ok := a.Providers[strings.ToLower(p)]
+		if !ok {
+			http.Error(w, "auth provider not known", http.StatusUnauthorized)
+			return
+		}
+
 		token := csrf.Token(r)
 		cookie := &http.Cookie{
 			Name:     "csrf_token",
@@ -37,8 +51,15 @@ func (a *Auth) Login() http.HandlerFunc {
 			Expires:  time.Now().Add(1 * time.Minute), // Set expiration time as needed
 			HttpOnly: true,
 		}
+		// State contain the provider and the csrf token.
+		state := fmt.Sprintf("%s,%s", token, p)
 		http.SetCookie(w, cookie)
-		http.Redirect(w, r, a.Config.AuthCodeURL(token), http.StatusFound)
+		http.Redirect(
+			w,
+			r,
+			provider.AuthCodeURL(state),
+			http.StatusFound,
+		)
 	}
 }
 
@@ -57,30 +78,76 @@ func (a *Auth) CallBack() http.HandlerFunc {
 			return
 		}
 		code := val.Get("code")
-		state := val.Get("state")
-		expectedState, err := r.Cookie("csrf_token")
+		csrfToken, p, ok := strings.Cut(val.Get("state"), ",")
+		if !ok {
+			log.Error().Msg(fmt.Sprintf("invalid state: %s", val.Get("state")))
+			http.Error(
+				w,
+				fmt.Sprintf("invalid state: %s", val.Get("state")),
+				http.StatusInternalServerError,
+			)
+			return
+		}
+
+		expectedCSRF, err := r.Cookie("csrf_token")
 		if err == http.ErrNoCookie {
 			http.Error(w, "no csrf cookie error", http.StatusUnauthorized)
 			return
 		}
-		if state != expectedState.Value {
+		if csrfToken != expectedCSRF.Value {
 			http.Error(w, "csrf error", http.StatusUnauthorized)
 			return
 		}
 
-		accessToken, err := a.Config.Exchange(r.Context(), code)
+		provider, ok := a.Providers[strings.ToLower(p)]
+		if !ok {
+			http.Error(w, "auth provider not known", http.StatusUnauthorized)
+			return
+		}
+
+		oauth2Token, err := provider.Exchange(r.Context(), code)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
-		user, err := getCurrentUser(accessToken)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
+		var userID, userName string
+		switch provider.Type {
+		case ProviderGitHub:
+			user, err := getCurrentUser(oauth2Token.AccessToken)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+			userID = fmt.Sprintf("%s:%d", p, user.ID)
+			userName = user.Login
+		case ProviderOIDC:
+			rawIDToken, ok := oauth2Token.Extra("id_token").(string)
+			if !ok {
+				log.Error().Any("provider", provider).Msg("missing ID token")
+				http.Error(w, "missing ID token", http.StatusInternalServerError)
+				return
+			}
+			idToken, err := provider.OIDCProvider.Verifier(&oidc.Config{
+				ClientID: provider.ClientID,
+			}).Verify(r.Context(), rawIDToken)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to verify ID token")
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+			claims := OIDCClaims{}
+			if err := idToken.Claims(&claims); err != nil {
+				log.Error().Err(err).Msg("failed to parse ID token")
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+
+			userID = fmt.Sprintf("%s:%s", p, claims.Subject)
+			userName = claims.Name
 		}
 
-		token, err := a.JWT.GenerateToken(fmt.Sprintf("github:%d", user.ID), user.Login)
+		token, err := a.JWT.GenerateToken(userID, userName)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -144,12 +211,12 @@ type user struct {
 	Login string `json:"login"`
 }
 
-func getCurrentUser(accessToken *oauth2.Token) (user, error) {
+func getCurrentUser(accessToken string) (user, error) {
 	req, err := http.NewRequest("GET", userURL, nil)
 	if err != nil {
 		return user{}, err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken.AccessToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 	req.Header.Add("X-GitHub-Api-Version", "2022-11-28")
 	req.Header.Add("Accept", "application/vnd.github+json")
 	resp, err := http.DefaultClient.Do(req)

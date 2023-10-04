@@ -3,6 +3,10 @@
   <hgroup>
     <h1>Login</h1>
   </hgroup>
-  <a type="button" id="github-sign-in" href="/login">Sign In with GitHub</a>
+  {{- range $name, $provider := .Providers }}
+  <a type="button" id="{{ $name }}-sign-in" href="/login?provider={{ $name }}"
+    >Sign In with {{ $provider.Name }}</a
+  >
+  {{- end }}
 </article>
 {{ end }}
