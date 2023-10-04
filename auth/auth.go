@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -10,7 +9,6 @@ import (
 	"time"
 
 	"github.com/Darkness4/auth-htmx/jwt"
-	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gorilla/csrf"
 	"github.com/rs/zerolog/log"
 )
@@ -111,40 +109,10 @@ func (a *Auth) CallBack() http.HandlerFunc {
 			return
 		}
 
-		var userID, userName string
-		switch provider.Type {
-		case ProviderGitHub:
-			user, err := getGithubUser(oauth2Token.AccessToken)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusUnauthorized)
-				return
-			}
-			userID = fmt.Sprintf("%s:%d", p, user.ID)
-			userName = user.Login
-		case ProviderOIDC:
-			rawIDToken, ok := oauth2Token.Extra("id_token").(string)
-			if !ok {
-				log.Error().Any("provider", provider).Msg("missing ID token")
-				http.Error(w, "missing ID token", http.StatusInternalServerError)
-				return
-			}
-			idToken, err := provider.OIDCProvider.Verifier(&oidc.Config{
-				ClientID: provider.ClientID,
-			}).Verify(r.Context(), rawIDToken)
-			if err != nil {
-				log.Error().Err(err).Msg("failed to verify ID token")
-				http.Error(w, err.Error(), http.StatusUnauthorized)
-				return
-			}
-			claims := OIDCClaims{}
-			if err := idToken.Claims(&claims); err != nil {
-				log.Error().Err(err).Msg("failed to parse ID token")
-				http.Error(w, err.Error(), http.StatusUnauthorized)
-				return
-			}
-
-			userID = fmt.Sprintf("%s:%s", p, claims.Subject)
-			userName = claims.Name
+		userID, userName, err := provider.GetIdentity(r.Context(), oauth2Token)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
 		}
 
 		token, err := a.JWT.GenerateToken(userID, userName)
@@ -204,30 +172,4 @@ func (a *Auth) Middleware(next http.Handler) http.Handler {
 func GetClaimsFromRequest(r *http.Request) (claims *jwt.Claims, ok bool) {
 	claims, ok = r.Context().Value(claimsContextKey{}).(*jwt.Claims)
 	return claims, ok
-}
-
-type githubUser struct {
-	ID    int    `json:"id"`
-	Login string `json:"login"`
-}
-
-func getGithubUser(accessToken string) (githubUser, error) {
-	req, err := http.NewRequest("GET", userURL, nil)
-	if err != nil {
-		return githubUser{}, err
-	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken))
-	req.Header.Add("X-GitHub-Api-Version", "2022-11-28")
-	req.Header.Add("Accept", "application/vnd.github+json")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return githubUser{}, err
-	}
-	defer resp.Body.Close()
-
-	var u githubUser
-	if err := json.NewDecoder(resp.Body).Decode(&u); err != nil {
-		return githubUser{}, err
-	}
-	return u, nil
 }
