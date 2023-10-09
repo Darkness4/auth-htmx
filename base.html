@@ -23,6 +23,17 @@
       hx-preserve="true"
       src="https://unpkg.com/htmx.org/dist/ext/head-support.js"
     ></script>
+    <style hx-preserve="true">
+      body > header {
+        padding-top: 2em;
+        padding-bottom: 0;
+      }
+
+      body > footer {
+        padding-top: 0;
+        padding-bottom: 2em;
+      }
+    </style>
     {{ template "head" . }}
   </head>
   <body hx-history="false" hx-ext="head-support">
