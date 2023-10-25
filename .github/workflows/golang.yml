@@ -81,7 +81,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Build
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         if: ${{ ! startsWith(github.ref, 'refs/tags') }}
         with:
           context: .
@@ -111,7 +111,7 @@ jobs:
 
       - name: Build and export
         if: startsWith(github.ref, 'refs/tags/')
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
