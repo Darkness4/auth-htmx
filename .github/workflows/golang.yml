@@ -12,6 +12,8 @@ on:
 
 jobs:
   lint-go:
+    name: Lint Go
+
     runs-on: ubuntu-latest
 
     steps:
@@ -39,6 +41,8 @@ jobs:
           args: --timeout 5m
 
   test-go:
+    name: Test Go
+
     runs-on: ubuntu-latest
 
     steps:
@@ -63,6 +67,8 @@ jobs:
         run: go test -race -covermode=atomic -timeout=30s ./...
 
   build-go:
+    name: Build Go
+
     runs-on: ubuntu-latest
 
     steps:
