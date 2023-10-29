@@ -7,18 +7,22 @@ VERSION_CORE_DEV = $(shell echo $(TAG_NAME_DEV))
 GIT_COMMIT = $(shell git rev-parse --short=7 HEAD)
 VERSION = $(or $(and $(TAG_NAME),$(VERSION_CORE)),$(and $(TAG_NAME_DEV),$(VERSION_CORE_DEV)-dev),$(GIT_COMMIT))
 
+gow := $(shell which gow)
 ifeq ($(gow),)
 gow := $(shell go env GOPATH)/bin/gow
 endif
 
+golint := $(shell which golangci-lint)
 ifeq ($(golint),)
 golint := $(shell go env GOPATH)/bin/golangci-lint
 endif
 
+sqlboiler := $(shell which sqlboiler)
 ifeq ($(sqlboiler),)
 sqlboiler := $(shell go env GOPATH)/bin/sqlboiler
 endif
 
+migrate := $(shell which migrate)
 ifeq ($(migrate),)
 migrate := $(shell go env GOPATH)/bin/migrate
 endif
@@ -32,8 +36,8 @@ run:
 	go run ./main.go
 
 .PHONY: watch
-watch:
-	gow -e=go,mod,html,tmpl,env,local run ./main.go
+watch: $(gow)
+	$(gow) -e=go,mod,html,tmpl,env,local run ./main.go
 
 .PHONY: lint
 lint: $(golint)
@@ -44,19 +48,19 @@ clean:
 	rm -rf bin/
 
 .PHONY: sql
-sql:
+sql: $(sqlboiler)
 	$(sqlboiler) sqlite3
 
 .PHONY: migration
-migration:
+migration: $(migrate)
 	$(migrate) create -seq -ext sql -dir db/migrations $(MIGRATION_NAME)
 
 .PHONY: up
-up: $(MIGRATIONS)
+up: $(MIGRATIONS) $(migrate)
 	$(migrate) -path database/migrations -database sqlite3://db.sqlite3?x-no-tx-wrap=true up
 
 .PHONY: drop
-drop:
+drop: $(migrate)
 	$(migrate) -path database/migrations -database sqlite3://db.sqlite3?x-no-tx-wrap=true drop -f
 
 $(migrate):
