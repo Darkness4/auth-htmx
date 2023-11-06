@@ -17,14 +17,14 @@ ifeq ($(golint),)
 golint := $(shell go env GOPATH)/bin/golangci-lint
 endif
 
-sqlboiler := $(shell which sqlboiler)
-ifeq ($(sqlboiler),)
-sqlboiler := $(shell go env GOPATH)/bin/sqlboiler
-endif
-
 migrate := $(shell which migrate)
 ifeq ($(migrate),)
 migrate := $(shell go env GOPATH)/bin/migrate
+endif
+
+sqlc := $(shell which sqlc)
+ifeq ($(sqlc),)
+sqlc := $(shell go env GOPATH)/bin/sqlc
 endif
 
 .PHONY: bin/auth-htmx
@@ -48,8 +48,8 @@ clean:
 	rm -rf bin/
 
 .PHONY: sql
-sql: $(sqlboiler)
-	$(sqlboiler) sqlite3
+sql: $(sqlc)
+	$(sqlc) generate
 
 .PHONY: migration
 migration: $(migrate)
@@ -66,15 +66,14 @@ drop: $(migrate)
 $(migrate):
 	go install -tags 'sqlite3' github.com/golang-migrate/migrate/v4/cmd/migrate
 
-$(sqlboiler):
-	go install github.com/volatiletech/sqlboiler/v4
-	go install github.com/volatiletech/sqlboiler/v4/drivers/sqlboiler-sqlite3
-
 $(gow):
 	go install github.com/mitranim/gow@latest
 
 $(golint):
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+$(sqlc):
+	go install github.com/sqlc-dev/sqlc/cmd/sqlc
 
 .PHONY: version
 version:

@@ -6,7 +6,7 @@ A very simple example HTMX with OAuth2 with:
 - HTMX solution for SSR.
 - OAuth2 with Github Auth and OIDC.
 - (+CSRF protection measures for OAuth2 and all requests).
-- SQLite3 with SQLBoiler and golang-migrate.
+- SQLite3 with sqlc and golang-migrate.
 
 ## Motivation
 

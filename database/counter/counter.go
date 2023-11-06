@@ -5,8 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/Darkness4/auth-htmx/database/models"
-	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/Darkness4/auth-htmx/database"
 )
 
 type Repository interface {
@@ -15,37 +14,28 @@ type Repository interface {
 }
 
 func NewRepository(db *sql.DB) Repository {
-	return &repository{db}
+	return &repository{
+		Queries: database.New(db),
+	}
 }
 
 type repository struct {
-	*sql.DB
+	*database.Queries
 }
 
 func (r *repository) Inc(ctx context.Context, userID string) (new int64, err error) {
-	counter, err := models.Counters(models.CounterWhere.UserID.EQ(userID)).One(ctx, r.DB)
+	new, err = r.Queries.IncrementCounter(ctx, userID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return 0, err
+		return new, err
 	}
-	if counter == nil {
-		counter = &models.Counter{
-			UserID: userID,
-			Count:  0,
-		}
+	if errors.Is(err, sql.ErrNoRows) {
+		return 1, r.Queries.CreateCounter(ctx, userID)
 	}
-	counter.Count++
-	return counter.Count, counter.Upsert(
-		ctx,
-		r.DB,
-		true,
-		[]string{models.CounterColumns.UserID},
-		boil.Whitelist(models.CounterColumns.Count),
-		boil.Infer(),
-	)
+	return new, err
 }
 
 func (r *repository) Get(ctx context.Context, userID string) (int64, error) {
-	counter, err := models.Counters(models.CounterWhere.UserID.EQ(userID)).One(ctx, r.DB)
+	counter, err := r.Queries.GetCounter(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
