@@ -53,7 +53,7 @@ sql: $(sqlc)
 
 .PHONY: migration
 migration: $(migrate)
-	$(migrate) create -seq -ext sql -dir db/migrations $(MIGRATION_NAME)
+	$(migrate) create -seq -ext sql -dir database/migrations $(MIGRATION_NAME)
 
 .PHONY: up
 up: $(MIGRATIONS) $(migrate)
