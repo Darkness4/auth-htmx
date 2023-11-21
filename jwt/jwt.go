@@ -1,3 +1,4 @@
+// Package jwt defines all the methods for JWT manipulation.
 package jwt
 
 import (
@@ -7,19 +8,23 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// ExpiresDuration is the duration when a user session expires.
 const ExpiresDuration = 24 * time.Hour
 
+// Claims are the fields stored in a JWT.
 type Claims struct {
 	jwt.RegisteredClaims
 	UserID   string `json:"user_id"`
 	UserName string `json:"user_name"`
 }
 
-type Service struct {
-	SecretKey []byte
-}
+// Secret is a HMAC JWT secret used for signing.
+type Secret []byte
 
-func (s *Service) GenerateToken(userID string, userName string) (string, error) {
+// GenerateToken creates a JWT session token which stores the user identity.
+//
+// The returned token is signed with the JWT secret, meaning it cannot be falsified.
+func (s Secret) GenerateToken(userID string, userName string) (string, error) {
 	// Create the token claims
 	claims := &Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -33,7 +38,7 @@ func (s *Service) GenerateToken(userID string, userName string) (string, error) 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// Sign the token with the secret key
-	tokenString, err := token.SignedString(s.SecretKey)
+	tokenString, err := token.SignedString([]byte(s))
 	if err != nil {
 		return "", err
 	}
@@ -41,7 +46,8 @@ func (s *Service) GenerateToken(userID string, userName string) (string, error) 
 	return tokenString, nil
 }
 
-func (s *Service) VerifyToken(tokenString string) (*Claims, error) {
+// VerifyToken checks if the token signature is valid compared to the JWT secret.
+func (s Secret) VerifyToken(tokenString string) (*Claims, error) {
 	// Parse the token
 	var claims Claims
 	token, err := jwt.ParseWithClaims(
@@ -54,7 +60,7 @@ func (s *Service) VerifyToken(tokenString string) (*Claims, error) {
 			}
 
 			// Return the secret key for validation
-			return []byte(s.SecretKey), nil
+			return []byte(s), nil
 		},
 	)
 	if err != nil {

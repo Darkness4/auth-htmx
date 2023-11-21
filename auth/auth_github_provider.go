@@ -10,27 +10,24 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const (
+	githubUserURL = "https://api.github.com/user"
+)
+
+// GitHubProvider is a authentication provider which uses OAuth2 from GitHub and GitHub API as identity provider.
 type GitHubProvider struct {
 	Name string
 	*oauth2.Config
 }
 
-func (p *GitHubProvider) AuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string {
-	return p.Config.AuthCodeURL(state, opts...)
-}
-
-func (p *GitHubProvider) Exchange(
-	ctx context.Context,
-	code string,
-	opts ...oauth2.AuthCodeOption,
-) (*oauth2.Token, error) {
-	return p.Config.Exchange(ctx, code, opts...)
-}
-
+// DisplayName returns the display name of the provider.
 func (p *GitHubProvider) DisplayName() string {
 	return p.Name
 }
 
+// GetIdentity fetches the identity of the authenticated user from the GitHub API.
+//
+// It returns <provider>:<user id>.
 func (p *GitHubProvider) GetIdentity(
 	ctx context.Context,
 	token *oauth2.Token,
@@ -48,7 +45,7 @@ type githubUser struct {
 }
 
 func getGithubUser(ctx context.Context, accessToken string) (githubUser, error) {
-	req, err := http.NewRequest("GET", userURL, nil)
+	req, err := http.NewRequest("GET", githubUserURL, nil)
 	if err != nil {
 		return githubUser{}, err
 	}

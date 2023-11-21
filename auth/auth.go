@@ -1,3 +1,4 @@
+// Package auth defines the authentication layer of the application.
 package auth
 
 import (
@@ -14,15 +15,14 @@ import (
 )
 
 const (
-	userURL = "https://api.github.com/user"
-
 	tokenCookieKey = "session_token"
 )
 
 type claimsContextKey struct{}
 
+// Auth is a service that provides HTTP handlers and middlewares used for authentication.
 type Auth struct {
-	JWT       jwt.Service
+	JWTSecret jwt.Secret
 	Providers map[string]Provider
 }
 
@@ -115,7 +115,7 @@ func (a *Auth) CallBack() http.HandlerFunc {
 			return
 		}
 
-		token, err := a.JWT.GenerateToken(userID, userName)
+		token, err := a.JWTSecret.GenerateToken(userID, userName)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -132,6 +132,7 @@ func (a *Auth) CallBack() http.HandlerFunc {
 	}
 }
 
+// Logout removes session cookies and redirect to home.
 func (a *Auth) Logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(tokenCookieKey)
@@ -146,6 +147,7 @@ func (a *Auth) Logout() http.HandlerFunc {
 	}
 }
 
+// Middleware is an authentication guard for HTTP servers.
 func (a *Auth) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get the JWT token from the request header
@@ -156,7 +158,7 @@ func (a *Auth) Middleware(next http.Handler) http.Handler {
 		}
 
 		// Verify the JWT token
-		claims, err := a.JWT.VerifyToken(cookie.Value)
+		claims, err := a.JWTSecret.VerifyToken(cookie.Value)
 		if err != nil {
 			log.Error().Err(err).Msg("token verification failed")
 			next.ServeHTTP(w, r)
@@ -169,6 +171,7 @@ func (a *Auth) Middleware(next http.Handler) http.Handler {
 	})
 }
 
+// GetClaimsFromRequest is a helper function to fetch the JWT session token from an HTTP request.
 func GetClaimsFromRequest(r *http.Request) (claims *jwt.Claims, ok bool) {
 	claims, ok = r.Context().Value(claimsContextKey{}).(*jwt.Claims)
 	return claims, ok

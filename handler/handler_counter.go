@@ -1,3 +1,4 @@
+// Package handler containers HTTP handling functions.
 package handler
 
 import (
@@ -8,6 +9,7 @@ import (
 	"github.com/Darkness4/auth-htmx/database/counter"
 )
 
+// Count increments the counter and returns the new value.
 func Count(counter counter.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		claims, ok := auth.GetClaimsFromRequest(r)
@@ -15,11 +17,11 @@ func Count(counter counter.Repository) http.HandlerFunc {
 			http.Error(w, "not allowed", http.StatusUnauthorized)
 			return
 		}
-		new, err := counter.Inc(r.Context(), claims.UserID)
+		newValue, err := counter.Inc(r.Context(), claims.UserID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		fmt.Fprintf(w, "%d", new)
+		fmt.Fprintf(w, "%d", newValue)
 	}
 }

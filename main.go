@@ -1,3 +1,6 @@
+/*
+Auth HTMX is a simple demonstration of OAuth2/OIDC in combination with HTMX, written in Go.
+*/
 package main
 
 import (
@@ -16,7 +19,6 @@ import (
 	"github.com/Darkness4/auth-htmx/database/counter"
 	"github.com/Darkness4/auth-htmx/handler"
 	"github.com/Darkness4/auth-htmx/jwt"
-	"github.com/Darkness4/auth-htmx/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/csrf"
 	"github.com/joho/godotenv"
@@ -49,7 +51,11 @@ var app = &cli.App{
 			Name:  "csrf.secret",
 			Usage: "A 32 bytes hex secret",
 			Action: func(ctx *cli.Context, s string) error {
-				key = utils.Must(hex.DecodeString(s))
+				data, err := hex.DecodeString(s)
+				if err != nil {
+					panic(err)
+				}
+				key = data
 				return nil
 			},
 			EnvVars: []string{"CSRF_SECRET"},
@@ -103,9 +109,6 @@ var app = &cli.App{
 		}
 
 		// JWT
-		j := jwt.Service{
-			SecretKey: []byte(jwtSecret),
-		}
 
 		providers, err := auth.GenerateProviders(ctx, config, fmt.Sprintf("%s/callback", publicURL))
 		if err != nil {
@@ -114,7 +117,7 @@ var app = &cli.App{
 
 		// Auth
 		authService := auth.Auth{
-			JWT:       j,
+			JWTSecret: jwt.Secret(jwtSecret),
 			Providers: providers,
 		}
 

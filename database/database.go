@@ -1,3 +1,4 @@
+// The package database handles the methods and definition to manipulate a database.
 package database
 
 import (
@@ -14,6 +15,7 @@ import (
 //go:embed migrations/*.sql
 var migrations embed.FS
 
+// InitialMigration migrate a sqlite3 database if necessary.
 func InitialMigration(db *sql.DB) error {
 	dbDriver, err := sqlite.WithInstance(db, &sqlite.Config{
 		NoTxWrap: true,
@@ -50,10 +52,10 @@ func InitialMigration(db *sql.DB) error {
 		panic(fmt.Errorf("failed to fetch DB version: %w", err))
 	} else {
 		log.Info().Uint("version", version).Msg("DB version detected.")
-		if new, err := iofsDriver.Next(version); err != nil {
+		if newVersion, err := iofsDriver.Next(version); err != nil {
 			log.Info().Uint("version", version).Msg("Latest DB version.")
 		} else {
-			log.Warn().Uint("actual", version).Uint("new", new).Msg("New DB version detected.")
+			log.Warn().Uint("actual", version).Uint("new", newVersion).Msg("New DB version detected.")
 		}
 	}
 	return nil

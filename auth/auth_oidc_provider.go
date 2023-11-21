@@ -10,6 +10,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// OIDCProvider is a authentication provider which uses OpenID Connect.
 type OIDCProvider struct {
 	Name string
 	*oauth2.Config
@@ -17,22 +18,14 @@ type OIDCProvider struct {
 	*oidc.Provider
 }
 
-func (p *OIDCProvider) AuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string {
-	return p.Config.AuthCodeURL(state, opts...)
-}
-
-func (p *OIDCProvider) Exchange(
-	ctx context.Context,
-	code string,
-	opts ...oauth2.AuthCodeOption,
-) (*oauth2.Token, error) {
-	return p.Config.Exchange(ctx, code, opts...)
-}
-
+// DisplayName returns the public name of the authenticated user.
 func (p *OIDCProvider) DisplayName() string {
 	return p.Name
 }
 
+// GetIdentity fetches the identity of the authenticated user from the ID token.
+//
+// It returns <provider>:<user id>.
 func (p *OIDCProvider) GetIdentity(
 	ctx context.Context,
 	token *oauth2.Token,
