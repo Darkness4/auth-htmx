@@ -124,6 +124,7 @@ func (a *Auth) CallBack() http.HandlerFunc {
 		cookie := &http.Cookie{
 			Name:     tokenCookieKey,
 			Value:    token,
+			Path:     "/",
 			Expires:  time.Now().Add(jwt.ExpiresDuration),
 			HttpOnly: true,
 		}
@@ -141,6 +142,8 @@ func (a *Auth) Logout() http.HandlerFunc {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
+		cookie.Value = ""
+		cookie.Path = "/"
 		cookie.Expires = time.Now().Add(-1 * time.Hour)
 		http.SetCookie(w, cookie)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
