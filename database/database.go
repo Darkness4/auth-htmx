@@ -55,7 +55,7 @@ func InitialMigration(db *sql.DB) error {
 		if newVersion, err := iofsDriver.Next(version); err != nil {
 			log.Info().Uint("version", version).Msg("Latest DB version.")
 		} else {
-			log.Warn().Uint("actual", version).Uint("new", newVersion).Msg("New DB version detected. Attepting automatic migration...")
+			log.Warn().Uint("actual", version).Uint("new", newVersion).Msg("New DB version detected. Attempting automatic migration...")
 			if err = m.Up(); err != nil {
 				panic(fmt.Errorf("failed to migrate db: %w", err))
 			}
