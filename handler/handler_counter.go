@@ -17,7 +17,7 @@ func Count(counter counter.Repository) http.HandlerFunc {
 			http.Error(w, "not allowed", http.StatusUnauthorized)
 			return
 		}
-		newValue, err := counter.Inc(r.Context(), claims.UserID)
+		newValue, err := counter.Inc(r.Context(), claims.ID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

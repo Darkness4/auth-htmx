@@ -13,7 +13,8 @@ import (
 
 // Config is the authentication configuration definition for the application.
 type Config struct {
-	Providers []ProviderConfig `yaml:"providers"`
+	Providers     []ProviderConfig `yaml:"providers"`
+	SelfHostUsers bool             `yaml:"selfHostUsers"`
 }
 
 // ProviderConfig is the configuration of one provider to achieve the OAuth2 flow.

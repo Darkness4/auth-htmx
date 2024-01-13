@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	tokenCookieKey = "session_token"
+	// TokenCookieKey is the key of the cookie stored in the context.
+	TokenCookieKey = "session_token"
 )
 
 type claimsContextKey struct{}
@@ -115,14 +116,14 @@ func (a *Auth) CallBack() http.HandlerFunc {
 			return
 		}
 
-		token, err := a.JWTSecret.GenerateToken(userID, userName)
+		token, err := a.JWTSecret.GenerateToken(userID, userName, strings.ToLower(p))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		cookie := &http.Cookie{
-			Name:     tokenCookieKey,
+			Name:     TokenCookieKey,
 			Value:    token,
 			Path:     "/",
 			Expires:  time.Now().Add(jwt.ExpiresDuration),
@@ -136,7 +137,7 @@ func (a *Auth) CallBack() http.HandlerFunc {
 // Logout removes session cookies and redirect to home.
 func (a *Auth) Logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie(tokenCookieKey)
+		cookie, err := r.Cookie(TokenCookieKey)
 		if err != nil {
 			// Ignore error. Cookie doesn't exists.
 			http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -154,7 +155,7 @@ func (a *Auth) Logout() http.HandlerFunc {
 func (a *Auth) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get the JWT token from the request header
-		cookie, err := r.Cookie(tokenCookieKey)
+		cookie, err := r.Cookie(TokenCookieKey)
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return
@@ -169,13 +170,13 @@ func (a *Auth) Middleware(next http.Handler) http.Handler {
 		}
 
 		// Store the claims in the request context for further use
-		ctx := context.WithValue(r.Context(), claimsContextKey{}, claims)
+		ctx := context.WithValue(r.Context(), claimsContextKey{}, *claims)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 // GetClaimsFromRequest is a helper function to fetch the JWT session token from an HTTP request.
-func GetClaimsFromRequest(r *http.Request) (claims *jwt.Claims, ok bool) {
-	claims, ok = r.Context().Value(claimsContextKey{}).(*jwt.Claims)
+func GetClaimsFromRequest(r *http.Request) (claims jwt.Claims, ok bool) {
+	claims, ok = r.Context().Value(claimsContextKey{}).(jwt.Claims)
 	return claims, ok
 }

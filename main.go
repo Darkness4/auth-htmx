@@ -5,21 +5,29 @@ package main
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"embed"
 
 	"github.com/Darkness4/auth-htmx/auth"
+	internalwebauthn "github.com/Darkness4/auth-htmx/auth/webauthn"
+	"github.com/Darkness4/auth-htmx/auth/webauthn/session"
 	"github.com/Darkness4/auth-htmx/database"
 	"github.com/Darkness4/auth-htmx/database/counter"
+	"github.com/Darkness4/auth-htmx/database/user"
 	"github.com/Darkness4/auth-htmx/handler"
 	"github.com/Darkness4/auth-htmx/jwt"
+	"github.com/Masterminds/sprig/v3"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/gorilla/csrf"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -31,7 +39,9 @@ import (
 
 var (
 	//go:embed pages/* components/* base.html base.htmx
-	html      embed.FS
+	html embed.FS
+	//go:embed static
+	static    embed.FS
 	version   = "dev"
 	key       []byte
 	jwtSecret string
@@ -159,6 +169,45 @@ var app = &cli.App{
 		r.Get("/logout", authService.Logout())
 		r.Get("/callback", authService.CallBack())
 
+		u, err := url.Parse(publicURL)
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to parse public URL")
+		}
+
+		webAuthn, err := webauthn.New(&webauthn.Config{
+			RPDisplayName: "Auth HTMX",  // Display Name for your site
+			RPID:          u.Hostname(), // Generally the domain name for your site
+			RPOrigin:      publicURL,    // The origin URL for WebAuthn requests
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		webauthnS := internalwebauthn.New(
+			webAuthn,
+			user.NewRepository(d),
+			session.NewInMemory(),
+			jwt.Secret(jwtSecret),
+		)
+
+		if config.SelfHostUsers {
+			r.Route("/webauthn", func(r chi.Router) {
+				r.Route("/login", func(r chi.Router) {
+					r.Get("/begin", webauthnS.BeginLogin())
+					r.Post("/finish", webauthnS.FinishLogin())
+				})
+				r.Route("/register", func(r chi.Router) {
+					r.Get("/begin", webauthnS.BeginRegistration())
+					r.Post("/finish", webauthnS.FinishRegistration())
+				})
+				r.Route("/add-device", func(r chi.Router) {
+					r.Get("/begin", webauthnS.BeginAddDevice())
+					r.Post("/finish", webauthnS.FinishAddDevice())
+				})
+				r.Post("/delete-device", webauthnS.DeleteDevice())
+			})
+		}
+
 		// Backend
 		cr := counter.NewRepository(d)
 		r.Post("/count", handler.Count(cr))
@@ -168,11 +217,7 @@ var app = &cli.App{
 			path := filepath.Clean(r.URL.Path)
 			path = filepath.Clean(fmt.Sprintf("pages/%s/page.tmpl", path))
 
-			var userName, userID string
-			if claims, ok := auth.GetClaimsFromRequest(r); ok {
-				userName = claims.UserName
-				userID = claims.UserID
-			}
+			claims, _ := auth.GetClaimsFromRequest(r)
 
 			// Check if SSR
 			var base string
@@ -183,31 +228,53 @@ var app = &cli.App{
 				// SSR
 				base = "base.htmx"
 			}
-			t, err := template.ParseFS(html, base, path, "components/*")
+			t, err := template.New("base").
+				Funcs(funcs()).
+				ParseFS(html, base, path, "components/*")
 			if err != nil {
-				// The page doesn't exist
-				http.Error(w, "not found", http.StatusNotFound)
+				if strings.Contains(err.Error(), "pattern matches no files") {
+					http.Error(w, "not found", http.StatusNotFound)
+					return
+				}
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 			if err := t.ExecuteTemplate(w, "base", struct {
-				UserName  string
-				UserID    string
-				CSRFToken string
-				Providers map[string]auth.Provider
+				UserName      string
+				UserID        string
+				Provider      string
+				Credentials   []webauthn.Credential
+				CSRFToken     string
+				Providers     map[string]auth.Provider
+				SelfHostUsers bool
 			}{
-				UserName:  userName,
-				UserID:    userID,
-				CSRFToken: csrf.Token(r),
-				Providers: providers,
+				UserName:      claims.Subject,
+				UserID:        claims.ID,
+				Provider:      claims.Provider,
+				Credentials:   claims.Credentials,
+				CSRFToken:     csrf.Token(r),
+				Providers:     providers,
+				SelfHostUsers: config.SelfHostUsers,
 			}); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 		}
 		r.Get("/*", renderFn)
+		r.Handle("/static/*", http.FileServer(http.FS(static)))
 
 		log.Info().Msg("listening")
 		return http.ListenAndServe(":3000", csrf.Protect(key)(r))
 	},
+}
+
+func base64encode(v string) string {
+	return base64.RawURLEncoding.EncodeToString([]byte(v))
+}
+
+func funcs() template.FuncMap {
+	m := sprig.TxtFuncMap()
+	m["b64urienc"] = base64encode
+	return m
 }
 
 func main() {

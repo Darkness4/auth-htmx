@@ -7,6 +7,53 @@
   <a type="button" id="{{ $name }}-sign-in" href="/login?provider={{ $name }}"
     >Sign In with {{ $provider.DisplayName }}</a
   >
+  {{- end }} {{- if and .SelfHostUsers (.Providers) }}
+  <hr />
+  {{- end }} {{- if .SelfHostUsers }}
+  <form _="on submit halt the event">
+    <fieldset>
+      <label>
+        User name
+        <input
+          type="text"
+          id="name"
+          autocomplete="username webauthn"
+          placeholder="User name"
+          aria-describedby="invalid-helper"
+        />
+        <small style="display: none" id="invalid-helper"></small>
+      </label>
+    </fieldset>
+    <button
+      _="on click call register(#name.value)
+      catch e
+        add @aria-invalid='true' to #name
+        set #invalid-helper.innerHTML to e
+        set the *display of #invalid-helper to 'block'
+      end"
+      id="webauthn-register"
+    >
+      Register with Security Key
+    </button>
+    <button
+      _="on click call login(#name.value)
+      catch e
+        add @aria-invalid='true' to #name
+        set #invalid-helper.innerHTML to e
+        set the *display of #invalid-helper to 'block'
+      end"
+      id="webauthn-sign-in"
+    >
+      Sign In with Security Key
+    </button>
+  </form>
+  <small
+    >You can use
+    <a href="https://vault.bitwarden.com/#/register?org=free&layout=default"
+      >Bitwarden</a
+    >
+    as a WebAuthn authenticator.</small
+  >
   {{- end }}
 </article>
 {{ end }}
