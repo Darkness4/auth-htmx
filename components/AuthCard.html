@@ -10,12 +10,16 @@
   {{- end }} {{- if .SelfHostUsers }}
   <hr />
   <form _="on submit halt the event">
-    <input
-      type="text"
-      id="name"
-      autocomplete="username webauthn"
-      placeholder="Username"
-    />
+    <fieldset>
+      <label>
+        User name
+        <input
+          type="text"
+          id="name"
+          autocomplete="username webauthn"
+          placeholder="User name"
+      /></label>
+    </fieldset>
     <button _="on click call register(#name.value)" id="webauthn-register">
       Register with WebAuthn
     </button>
@@ -24,6 +28,5 @@
     </button>
   </form>
   {{- end }}
-  <!-- TODO: CSRF Token -->
 </article>
 {{ end }}

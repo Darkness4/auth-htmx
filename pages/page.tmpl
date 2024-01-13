@@ -3,6 +3,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/js-base64@3.7.5/base64.min.js"></script>
 <script>
+  // Functions are defined here because we cannot lazy load JS from HTMX.
   async function login(name) {
     if (!window.PublicKeyCredential) {
       alert('Error: this browser does not support WebAuthn');
@@ -20,8 +21,6 @@
     });
 
     const assertion = await navigator.credentials.get(options);
-
-    console.log(assertion);
 
     resp = await fetch(`/webauthn/login/finish?name=${name}`, {
       method: 'POST',
@@ -54,7 +53,7 @@
       }),
     });
 
-    console.log(await resp.text());
+    window.location.reload();
   }
 
   async function register(name) {
@@ -106,7 +105,7 @@
       }),
     });
 
-    console.log(await resp.text());
+    window.location.reload();
   }
 </script>
 {{ end }}

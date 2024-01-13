@@ -1,26 +1,31 @@
 package webauthn
 
 import (
+	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"time"
 
+	"github.com/Darkness4/auth-htmx/auth"
 	"github.com/Darkness4/auth-htmx/auth/webauthn/session"
 	"github.com/Darkness4/auth-htmx/database/user"
+	"github.com/Darkness4/auth-htmx/jwt"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/rs/zerolog/log"
 )
 
 type Service struct {
-	webAuthn *webauthn.WebAuthn
-	users    user.Repository
-	store    session.Store
+	webAuthn  *webauthn.WebAuthn
+	jwtSecret jwt.Secret
+	users     user.Repository
+	store     session.Store
 }
 
 func New(
 	webAuthn *webauthn.WebAuthn,
 	users user.Repository,
 	store session.Store,
+	jwtSecret jwt.Secret,
 ) *Service {
 	if webAuthn == nil {
 		panic("webAuthn is nil")
@@ -32,9 +37,10 @@ func New(
 		panic("store is nil")
 	}
 	return &Service{
-		webAuthn: webAuthn,
-		users:    users,
-		store:    store,
+		webAuthn:  webAuthn,
+		users:     users,
+		store:     store,
+		jwtSecret: jwtSecret,
 	}
 }
 
@@ -118,7 +124,25 @@ func (s *Service) FinishLogin() http.HandlerFunc {
 			return
 		}
 
-		fmt.Fprintln(w, "Login Success")
+		// Identity is now verified
+		token, err := s.jwtSecret.GenerateToken(
+			base64.RawURLEncoding.EncodeToString(user.ID),
+			user.Name,
+		)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		cookie := &http.Cookie{
+			Name:     auth.TokenCookieKey,
+			Value:    token,
+			Path:     "/",
+			Expires:  time.Now().Add(jwt.ExpiresDuration),
+			HttpOnly: true,
+		}
+		http.SetCookie(w, cookie)
+		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
 
@@ -200,6 +224,25 @@ func (s *Service) FinishRegistration() http.HandlerFunc {
 		}
 
 		log.Info().Any("user", user).Msg("user created")
-		fmt.Fprintln(w, "Registration Success")
+
+		// Identity is now verified
+		token, err := s.jwtSecret.GenerateToken(
+			base64.RawURLEncoding.EncodeToString(user.ID),
+			user.Name,
+		)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		cookie := &http.Cookie{
+			Name:     auth.TokenCookieKey,
+			Value:    token,
+			Path:     "/",
+			Expires:  time.Now().Add(jwt.ExpiresDuration),
+			HttpOnly: true,
+		}
+		http.SetCookie(w, cookie)
+		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }

@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	tokenCookieKey = "session_token"
+	TokenCookieKey = "session_token"
 )
 
 type claimsContextKey struct{}
@@ -122,7 +122,7 @@ func (a *Auth) CallBack() http.HandlerFunc {
 		}
 
 		cookie := &http.Cookie{
-			Name:     tokenCookieKey,
+			Name:     TokenCookieKey,
 			Value:    token,
 			Path:     "/",
 			Expires:  time.Now().Add(jwt.ExpiresDuration),
@@ -136,7 +136,7 @@ func (a *Auth) CallBack() http.HandlerFunc {
 // Logout removes session cookies and redirect to home.
 func (a *Auth) Logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie(tokenCookieKey)
+		cookie, err := r.Cookie(TokenCookieKey)
 		if err != nil {
 			// Ignore error. Cookie doesn't exists.
 			http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -154,7 +154,7 @@ func (a *Auth) Logout() http.HandlerFunc {
 func (a *Auth) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get the JWT token from the request header
-		cookie, err := r.Cookie(tokenCookieKey)
+		cookie, err := r.Cookie(TokenCookieKey)
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return

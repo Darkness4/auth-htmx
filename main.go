@@ -1,7 +1,6 @@
 /*
 Auth HTMX is a simple demonstration of OAuth2/OIDC in combination with HTMX, written in Go.
-*/
-package main
+*/package main
 
 import (
 	"database/sql"
@@ -9,6 +8,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 
@@ -163,16 +163,26 @@ var app = &cli.App{
 		r.Get("/logout", authService.Logout())
 		r.Get("/callback", authService.CallBack())
 
+		u, err := url.Parse(publicURL)
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to parse public URL")
+		}
+
 		webAuthn, err := webauthn.New(&webauthn.Config{
-			RPDisplayName: "Auth HTMX",             // Display Name for your site
-			RPID:          "localhost",             // Generally the domain name for your site
-			RPOrigin:      "http://localhost:3000", // The origin URL for WebAuthn requests
+			RPDisplayName: "Auth HTMX",  // Display Name for your site
+			RPID:          u.Hostname(), // Generally the domain name for your site
+			RPOrigin:      publicURL,    // The origin URL for WebAuthn requests
 		})
 		if err != nil {
 			panic(err)
 		}
 
-		webauthnS := internalwebauthn.New(webAuthn, user.NewRepository(d), session.NewInMemory())
+		webauthnS := internalwebauthn.New(
+			webAuthn,
+			user.NewRepository(d),
+			session.NewInMemory(),
+			jwt.Secret(jwtSecret),
+		)
 
 		if config.SelfHostUsers {
 			r.Route("/webauthn", func(r chi.Router) {
