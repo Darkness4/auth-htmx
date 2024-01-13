@@ -1,12 +1,19 @@
-# Go + HTMX + OAuth2/OIDC
+# Go + HTMX + OAuth2/OIDC + WebAuthn
 
 A very simple example HTMX with OAuth2 with:
 
 - Go HTML templating engine.
 - HTMX solution for SSR.
-- OAuth2 with Github Auth and OIDC.
-- (+CSRF protection measures for OAuth2 and all requests).
+- OAuth2 with Github Auth and OIDC. OAuth2 delegates authentication to another authentication service. OIDC provides identities.
+- CSRF protection measures for OAuth2 and all requests.
 - SQLite3 with sqlc and golang-migrate.
+- Optional users in database as Identity Provider. Authentication is through WebAuthn, a solution to delegate authentication directly to the user.
+- JWT is used a session token.
+
+Embellishment:
+
+- Notyf to notify about errors, include HTMX errors.
+- Added Hyperscript for edge cases.
 
 ## Motivation
 
@@ -27,6 +34,7 @@ For the hype.
    ## PUBLIC_URL will be used as redirect url which is ${PUBLIC_URL}/callback
    PUBLIC_URL=http://localhost:3000 # redirectURL: http://localhost:3000/callback
    DB_PATH=/data/db.sqlite3
+   # CONFIG_PATH=/path/to/config.yaml
    ```
 
 3. Run the binary:
