@@ -35,7 +35,9 @@ type repository struct {
 }
 
 var (
-	ErrUserNotFound       = errors.New("user not found")
+	// ErrUserNotFound happens when the user if not found in the database.
+	ErrUserNotFound = errors.New("user not found")
+	// ErrCredentialNotFound happens when the credential if not found in the database.
 	ErrCredentialNotFound = errors.New("credential not found")
 )
 

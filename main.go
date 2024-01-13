@@ -1,6 +1,7 @@
 /*
 Auth HTMX is a simple demonstration of OAuth2/OIDC in combination with HTMX, written in Go.
-*/package main
+*/
+package main
 
 import (
 	"database/sql"

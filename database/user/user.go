@@ -1,3 +1,4 @@
+// Package user handle the database users.
 package user
 
 import (
@@ -8,6 +9,7 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 )
 
+// User stores WebAuthn related information.
 type User struct {
 	ID          []byte
 	Name        string

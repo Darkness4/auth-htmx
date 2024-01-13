@@ -22,8 +22,10 @@ type Claims struct {
 // Secret is a HMAC JWT secret used for signing.
 type Secret []byte
 
+// Option is an option for JWT.
 type Option func(*Options)
 
+// Options is the struct storing the options for JWT.
 type Options struct {
 	credentials []webauthn.Credential
 }
@@ -36,6 +38,7 @@ func applyOptions(opts []Option) *Options {
 	return o
 }
 
+// WithCredentials exports Webauthn credentials in the JWT.
 func WithCredentials(credentials []webauthn.Credential) Option {
 	return func(o *Options) {
 		o.credentials = credentials

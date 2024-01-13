@@ -1,3 +1,4 @@
+// Package webauthn handles WebAuthn related functionalities.
 package webauthn
 
 import (
@@ -15,6 +16,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// Service prepares WebAuthn handlers.
 type Service struct {
 	webAuthn  *webauthn.WebAuthn
 	jwtSecret jwt.Secret
@@ -22,6 +24,7 @@ type Service struct {
 	store     session.Store
 }
 
+// New instanciates a Webauthn Service.
 func New(
 	webAuthn *webauthn.WebAuthn,
 	users user.Repository,
@@ -45,6 +48,7 @@ func New(
 	}
 }
 
+// BeginLogin is the handler called to generate options for the user's authenticator.
 func (s *Service) BeginLogin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := r.URL.Query().Get("name")
@@ -81,10 +85,11 @@ func (s *Service) BeginLogin() http.HandlerFunc {
 			return
 		}
 
-		w.Write(o)
+		_, _ = w.Write(o)
 	}
 }
 
+// FinishLogin is the handler called after the user's authenticator sent its payload.
 func (s *Service) FinishLogin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := r.URL.Query().Get("name")
@@ -216,7 +221,7 @@ func (s *Service) BeginRegistration() http.HandlerFunc {
 			return
 		}
 
-		w.Write(o)
+		_, _ = w.Write(o)
 	}
 }
 
@@ -349,7 +354,7 @@ func (s *Service) BeginAddDevice() http.HandlerFunc {
 			return
 		}
 
-		w.Write(o)
+		_, _ = w.Write(o)
 	}
 }
 

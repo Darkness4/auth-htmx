@@ -15,6 +15,7 @@ import (
 )
 
 const (
+	// TokenCookieKey is the key of the cookie stored in the context.
 	TokenCookieKey = "session_token"
 )
 
