@@ -31,6 +31,11 @@ type repository struct {
 	*database.Queries
 }
 
+var (
+	ErrUserNotFound       = errors.New("user not found")
+	ErrCredentialNotFound = errors.New("credential not found")
+)
+
 // AddCredential to a user from the database.
 func (r *repository) AddCredential(
 	ctx context.Context,
@@ -111,7 +116,7 @@ func (r *repository) Create(ctx context.Context, name string, displayName string
 // GetOrCreateByName a user from the databse.
 func (r *repository) GetOrCreateByName(ctx context.Context, name string) (*User, error) {
 	u, err := r.GetByName(ctx, name)
-	if errors.Is(err, sql.ErrNoRows) {
+	if errors.Is(err, ErrUserNotFound) {
 		u, err = r.Create(ctx, name, name)
 		if err != nil {
 			return nil, err
@@ -126,7 +131,9 @@ func (r *repository) GetOrCreateByName(ctx context.Context, name string) (*User,
 // GetByName a user from the database.
 func (r *repository) GetByName(ctx context.Context, name string) (*User, error) {
 	u, err := r.Queries.GetUserByName(ctx, name)
-	if err != nil {
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrUserNotFound
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -143,7 +150,9 @@ func (r *repository) getCredentialsByUser(
 	id []byte,
 ) ([]webauthn.Credential, error) {
 	cc, err := r.Queries.GetCredentialsByUser(ctx, id)
-	if err != nil {
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrCredentialNotFound
+	} else if err != nil {
 		return nil, err
 	}
 

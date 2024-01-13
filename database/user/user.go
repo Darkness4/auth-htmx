@@ -57,6 +57,23 @@ func (u *User) WebAuthnIcon() string {
 	return ""
 }
 
+// ExcludeCredentialDescriptorList provides a list of credentials already registered.
+// This is an extension to WebAuthn.
+//
+// Specification: §5.4.3. User Account Parameters for Credential Generation (https://w3c.github.io/webauthn/#sctn-op-make-cred)
+func (u *User) ExcludeCredentialDescriptorList() []protocol.CredentialDescriptor {
+	credentialExcludeList := []protocol.CredentialDescriptor{}
+	for _, cred := range u.Credentials {
+		descriptor := protocol.CredentialDescriptor{
+			Type:         protocol.PublicKeyCredentialType,
+			CredentialID: cred.ID,
+		}
+		credentialExcludeList = append(credentialExcludeList, descriptor)
+	}
+
+	return credentialExcludeList
+}
+
 func credentialFromModel(credential *database.Credential) webauthn.Credential {
 	var transport []protocol.AuthenticatorTransport
 	if err := json.Unmarshal(credential.Transport, &transport); err != nil {

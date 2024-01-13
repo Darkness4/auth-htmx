@@ -4,6 +4,8 @@
 <script src="https://cdn.jsdelivr.net/npm/js-base64@3.7.5/base64.min.js"></script>
 <script>
   // Functions are defined here because we cannot lazy load JS from HTMX.
+
+  // Login executes the WebAuthn flow.
   async function login(name) {
     if (!window.PublicKeyCredential) {
       alert('Error: this browser does not support WebAuthn');
@@ -11,6 +13,11 @@
     }
 
     let resp = await fetch(`/webauthn/login/begin?name=${name}`);
+
+    if (!resp.ok) {
+      throw new Error(await resp.text());
+    }
+
     const options = await resp.json();
 
     options.publicKey.challenge = Base64.toUint8Array(
@@ -53,16 +60,25 @@
       }),
     });
 
+    if (!resp.ok) {
+      throw new Error(await resp.text());
+    }
+
     window.location.reload();
   }
 
   async function register(name) {
     if (!window.PublicKeyCredential) {
-      alert('Error: this browser does not support WebAuthn');
+      alert('Error: this browser does not support WebAuthn.');
       return;
     }
 
     let resp = await fetch(`/webauthn/register/begin?name=${name}`);
+
+    if (!resp.ok) {
+      throw new Error(await resp.text());
+    }
+
     const options = await resp.json();
 
     // go-webauthn returns base64 encoded values.
@@ -71,11 +87,9 @@
     );
     options.publicKey.user.id = Base64.toUint8Array(options.publicKey.user.id);
     if (options.publicKey.excludeCredentials) {
-      for (var i = 0; i < options.publicKey.excludeCredentials.length; i++) {
-        options.publicKey.excludeCredentials[i].id = Base64.toUint8Array(
-          options.publicKey.excludeCredentials[i].id
-        );
-      }
+      options.publicKey.excludeCredentials.forEach(function (listItem) {
+        listItem.id = Base64.toUint8Array(listItem.id);
+      });
     }
 
     const credential = await navigator.credentials.create(options);
@@ -104,6 +118,10 @@
         },
       }),
     });
+
+    if (!resp.ok) {
+      throw new Error(await resp.text());
+    }
 
     window.location.reload();
   }

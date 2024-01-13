@@ -18,12 +18,31 @@
           id="name"
           autocomplete="username webauthn"
           placeholder="User name"
-      /></label>
+          aria-describedby="invalid-helper"
+        />
+        <small style="display: none" id="invalid-helper"></small>
+      </label>
     </fieldset>
-    <button _="on click call register(#name.value)" id="webauthn-register">
+    <button
+      _="on click call register(#name.value)
+      catch e
+        add @aria-invalid='true' to #name
+        set #invalid-helper.innerHTML to e
+        set the *display of #invalid-helper to 'block'
+      end"
+      id="webauthn-register"
+    >
       Register with WebAuthn
     </button>
-    <button _="on click call login(#name.value)" id="webauthn-sign-in">
+    <button
+      _="on click call login(#name.value)
+      catch e
+        add @aria-invalid='true' to #name
+        set #invalid-helper.innerHTML to e
+        set the *display of #invalid-helper to 'block'
+      end"
+      id="webauthn-sign-in"
+    >
       Sign In with WebAuthn
     </button>
   </form>

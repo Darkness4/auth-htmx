@@ -10,6 +10,7 @@ import (
 	"github.com/Darkness4/auth-htmx/auth/webauthn/session"
 	"github.com/Darkness4/auth-htmx/database/user"
 	"github.com/Darkness4/auth-htmx/jwt"
+	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/rs/zerolog/log"
 )
@@ -48,7 +49,7 @@ func (s *Service) BeginLogin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := r.URL.Query().Get("name")
 		if name == "" {
-			http.Error(w, "no name passed as query params", http.StatusBadRequest)
+			http.Error(w, "empty user name", http.StatusBadRequest)
 			return
 		}
 		user, err := s.users.GetByName(r.Context(), name)
@@ -88,7 +89,7 @@ func (s *Service) FinishLogin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := r.URL.Query().Get("name")
 		if name == "" {
-			http.Error(w, "no name passed as query params", http.StatusBadRequest)
+			http.Error(w, "empty user name", http.StatusBadRequest)
 			return
 		}
 		user, err := s.users.GetByName(r.Context(), name)
@@ -113,7 +114,16 @@ func (s *Service) FinishLogin() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		// Handle credential.Authenticator.CloneWarning
+
+		// At this point, we've confirmed the correct authenticator has been
+		// provided and it passed the challenge we gave it. We now need to make
+		// sure that the sign counter is higher than what we have stored to help
+		// give assurance that this credential wasn't cloned.
+		if credential.Authenticator.CloneWarning {
+			log.Err(err).Msg("credential appears to be cloned")
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
 
 		// If login was successful, update the credential object
 		if err := s.users.UpdateCredential(r.Context(), credential); err != nil {
@@ -150,7 +160,7 @@ func (s *Service) BeginRegistration() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := r.URL.Query().Get("name")
 		if name == "" {
-			http.Error(w, "no name passed as query params", http.StatusBadRequest)
+			http.Error(w, "empty user name", http.StatusBadRequest)
 			return
 		}
 		user, err := s.users.GetOrCreateByName(r.Context(), name) // Find or create the new user
@@ -159,7 +169,10 @@ func (s *Service) BeginRegistration() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		options, session, err := s.webAuthn.BeginRegistration(user)
+		registerOptions := func(credCreationOpts *protocol.PublicKeyCredentialCreationOptions) {
+			credCreationOpts.CredentialExcludeList = user.ExcludeCredentialDescriptorList()
+		}
+		options, session, err := s.webAuthn.BeginRegistration(user, registerOptions)
 		if err != nil {
 			log.Err(err).Any("user", user).Msg("user failed to begin registration")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -189,7 +202,7 @@ func (s *Service) FinishRegistration() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := r.URL.Query().Get("name")
 		if name == "" {
-			http.Error(w, "no name passed as query params", http.StatusBadRequest)
+			http.Error(w, "empty user name", http.StatusBadRequest)
 			return
 		}
 		user, err := s.users.GetByName(r.Context(), name)
