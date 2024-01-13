@@ -8,6 +8,7 @@ import (
 	"errors"
 
 	"github.com/Darkness4/auth-htmx/database"
+	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 )
 
@@ -15,9 +16,11 @@ import (
 type Repository interface {
 	GetOrCreateByName(ctx context.Context, name string) (*User, error)
 	GetByName(ctx context.Context, name string) (*User, error)
+	Get(ctx context.Context, id []byte) (*User, error)
 	Create(ctx context.Context, name string, displayName string) (*User, error)
 	AddCredential(ctx context.Context, id []byte, credential *webauthn.Credential) error
 	UpdateCredential(ctx context.Context, credential *webauthn.Credential) error
+	RemoveCredential(ctx context.Context, id []byte, credentialID []byte) error
 }
 
 // NewRepository wraps around a SQL database to execute the counter methods.
@@ -42,6 +45,9 @@ func (r *repository) AddCredential(
 	id []byte,
 	credential *webauthn.Credential,
 ) error {
+	if credential.Transport == nil {
+		credential.Transport = []protocol.AuthenticatorTransport{}
+	}
 	transport, err := json.Marshal(credential.Transport)
 	if err != nil {
 		return err
@@ -128,6 +134,23 @@ func (r *repository) GetOrCreateByName(ctx context.Context, name string) (*User,
 	return u, nil
 }
 
+// Gea user from the database.
+func (r *repository) Get(ctx context.Context, id []byte) (*User, error) {
+	u, err := r.Queries.GetUser(ctx, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrUserNotFound
+	} else if err != nil {
+		return nil, err
+	}
+
+	credentials, err := r.getCredentialsByUser(ctx, u.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return fromModel(&u, credentials), nil
+}
+
 // GetByName a user from the database.
 func (r *repository) GetByName(ctx context.Context, name string) (*User, error) {
 	u, err := r.Queries.GetUserByName(ctx, name)
@@ -161,4 +184,16 @@ func (r *repository) getCredentialsByUser(
 		credentials = append(credentials, credentialFromModel(&c))
 	}
 	return credentials, nil
+}
+
+// RemoveCredential of a user from the database.
+func (r *repository) RemoveCredential(
+	ctx context.Context,
+	id []byte,
+	credentialID []byte,
+) error {
+	return r.Queries.DeleteCredential(ctx, database.DeleteCredentialParams{
+		ID:     credentialID,
+		UserID: id,
+	})
 }

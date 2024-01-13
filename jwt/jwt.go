@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -14,24 +15,52 @@ const ExpiresDuration = 24 * time.Hour
 // Claims are the fields stored in a JWT.
 type Claims struct {
 	jwt.RegisteredClaims
-	UserID   string `json:"user_id"`
-	UserName string `json:"user_name"`
+	Provider    string                `json:"provider"`
+	Credentials []webauthn.Credential `json:"credentials"`
 }
 
 // Secret is a HMAC JWT secret used for signing.
 type Secret []byte
 
+type Option func(*Options)
+
+type Options struct {
+	credentials []webauthn.Credential
+}
+
+func applyOptions(opts []Option) *Options {
+	o := &Options{}
+	for _, opt := range opts {
+		opt(o)
+	}
+	return o
+}
+
+func WithCredentials(credentials []webauthn.Credential) Option {
+	return func(o *Options) {
+		o.credentials = credentials
+	}
+}
+
 // GenerateToken creates a JWT session token which stores the user identity.
 //
 // The returned token is signed with the JWT secret, meaning it cannot be falsified.
-func (s Secret) GenerateToken(userID string, userName string) (string, error) {
+func (s Secret) GenerateToken(
+	userID string,
+	userName string,
+	provider string,
+	options ...Option,
+) (string, error) {
+	o := applyOptions(options)
 	// Create the token claims
 	claims := &Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        userID,
+			Subject:   userName,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(ExpiresDuration)),
 		},
-		UserID:   userID,
-		UserName: userName,
+		Provider:    provider,
+		Credentials: o.credentials,
 	}
 
 	// Create the token object

@@ -23,7 +23,7 @@
     <link
       hx-preserve="true"
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@picocss/pico@next/css/pico.classless.min.css"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@next/css/pico.min.css"
     />
     <script
       hx-preserve="true"
@@ -35,17 +35,40 @@
       integrity="sha384-+Uth1QzYJsTjnS5SXVN3fFO4I32Y571xIuv53WJ2SA7y5/36tKU1VCutONAmg5eH"
       crossorigin="anonymous"
     ></script>
-    <style hx-preserve="true">
-      body > header {
-        padding-top: 2em;
-        padding-bottom: 0;
-      }
+    <script
+      hx-preserve="true"
+      src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"
+      integrity="sha384-uuNfwJfjOG2ukYi4eAB11/t3lP4Zjf75a3UhgkLzEpiX8JpJfacpG7Ye+0tiVMxT"
+      crossorigin="anonymous"
+    ></script>
+    <script hx-preserve="true">
+      addEventListener('DOMContentLoaded', (event) => {
+        window.notyf = new Notyf({
+          duration: 10000,
+          ripple: false,
+          dismissible: true,
+        });
 
-      body > footer {
-        padding-top: 0;
-        padding-bottom: 2em;
-      }
-    </style>
+        document.addEventListener('htmx:responseError', function (e) {
+          notyf.error(e.detail.xhr.response);
+        });
+      });
+    </script>
+    <link
+      hx-preserve="true"
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css"
+      integrity="sha384-snpJ3knpH6avB6cP1vPkNdmRzCYaCpom/3TNOyvo189BiogXYXQfXkyYpZ2/xADs"
+      crossorigin="anonymous"
+    />
+    <link
+      hx-preserve="true"
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/flexboxgrid/6.3.1/flexboxgrid.min.css"
+      integrity="sha512-YHuwZabI2zi0k7c9vtg8dK/63QB0hLvD4thw44dFo/TfBFVVQOqEG9WpviaEpbyvgOIYLXF1n7xDUfU3GDs0sw=="
+      crossorigin="anonymous"
+    />
+    <link hx-preserve="true" rel="stylesheet" href="/static/app.css" />
     {{ template "head" . }}
   </head>
   <body hx-history="false" hx-ext="head-support">

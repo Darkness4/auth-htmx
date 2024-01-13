@@ -9,6 +9,9 @@ INSERT INTO counters (user_id, count) VALUES (?, 1);
 
 -- Self-Hosted users
 
+-- name: GetUser :one
+SELECT * FROM users WHERE id = ? LIMIT 1;
+
 -- name: GetUserByName :one
 SELECT * FROM users WHERE name = ? LIMIT 1;
 
@@ -26,6 +29,9 @@ transport = ?,
 flags = ?,
 authenticator = ?
 WHERE id = sqlc.arg(by_id);
+
+-- name: DeleteCredential :exec
+DELETE FROM credentials WHERE id = ? AND user_id = ?;
 
 -- name: GetCredentialsByUser :many
 SELECT * FROM credentials WHERE user_id = ?;

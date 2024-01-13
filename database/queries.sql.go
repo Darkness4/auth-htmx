@@ -62,6 +62,20 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const deleteCredential = `-- name: DeleteCredential :exec
+DELETE FROM credentials WHERE id = ? AND user_id = ?
+`
+
+type DeleteCredentialParams struct {
+	ID     []byte
+	UserID []byte
+}
+
+func (q *Queries) DeleteCredential(ctx context.Context, arg DeleteCredentialParams) error {
+	_, err := q.db.ExecContext(ctx, deleteCredential, arg.ID, arg.UserID)
+	return err
+}
+
 const getCounter = `-- name: GetCounter :one
 SELECT user_id, count FROM counters WHERE user_id = ? LIMIT 1
 `
@@ -108,12 +122,23 @@ func (q *Queries) GetCredentialsByUser(ctx context.Context, userID []byte) ([]Cr
 	return items, nil
 }
 
-const getUserByName = `-- name: GetUserByName :one
+const getUser = `-- name: GetUser :one
 
-SELECT id, name, display_name FROM users WHERE name = ? LIMIT 1
+SELECT id, name, display_name FROM users WHERE id = ? LIMIT 1
 `
 
 // Self-Hosted users
+func (q *Queries) GetUser(ctx context.Context, id []byte) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUser, id)
+	var i User
+	err := row.Scan(&i.ID, &i.Name, &i.DisplayName)
+	return i, err
+}
+
+const getUserByName = `-- name: GetUserByName :one
+SELECT id, name, display_name FROM users WHERE name = ? LIMIT 1
+`
+
 func (q *Queries) GetUserByName(ctx context.Context, name string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByName, name)
 	var i User

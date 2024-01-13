@@ -7,8 +7,9 @@
   <a type="button" id="{{ $name }}-sign-in" href="/login?provider={{ $name }}"
     >Sign In with {{ $provider.DisplayName }}</a
   >
-  {{- end }} {{- if .SelfHostUsers }}
+  {{- end }} {{- if and .SelfHostUsers (.Providers) }}
   <hr />
+  {{- end }} {{- if .SelfHostUsers }}
   <form _="on submit halt the event">
     <fieldset>
       <label>
@@ -32,7 +33,7 @@
       end"
       id="webauthn-register"
     >
-      Register with WebAuthn
+      Register with Security Key
     </button>
     <button
       _="on click call login(#name.value)
@@ -43,9 +44,16 @@
       end"
       id="webauthn-sign-in"
     >
-      Sign In with WebAuthn
+      Sign In with Security Key
     </button>
   </form>
+  <small
+    >You can use
+    <a href="https://vault.bitwarden.com/#/register?org=free&layout=default"
+      >Bitwarden</a
+    >
+    as a WebAuthn authenticator.</small
+  >
   {{- end }}
 </article>
 {{ end }}

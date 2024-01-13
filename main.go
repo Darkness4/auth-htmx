@@ -4,6 +4,7 @@ Auth HTMX is a simple demonstration of OAuth2/OIDC in combination with HTMX, wri
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"html/template"
@@ -11,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"embed"
 
@@ -22,6 +24,7 @@ import (
 	"github.com/Darkness4/auth-htmx/database/user"
 	"github.com/Darkness4/auth-htmx/handler"
 	"github.com/Darkness4/auth-htmx/jwt"
+	"github.com/Masterminds/sprig/v3"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/gorilla/csrf"
@@ -35,7 +38,9 @@ import (
 
 var (
 	//go:embed pages/* components/* base.html base.htmx
-	html      embed.FS
+	html embed.FS
+	//go:embed static
+	static    embed.FS
 	version   = "dev"
 	key       []byte
 	jwtSecret string
@@ -194,6 +199,11 @@ var app = &cli.App{
 					r.Get("/begin", webauthnS.BeginRegistration())
 					r.Post("/finish", webauthnS.FinishRegistration())
 				})
+				r.Route("/add-device", func(r chi.Router) {
+					r.Get("/begin", webauthnS.BeginAddDevice())
+					r.Post("/finish", webauthnS.FinishAddDevice())
+				})
+				r.Post("/delete-device", webauthnS.DeleteDevice())
 			})
 		}
 
@@ -206,11 +216,7 @@ var app = &cli.App{
 			path := filepath.Clean(r.URL.Path)
 			path = filepath.Clean(fmt.Sprintf("pages/%s/page.tmpl", path))
 
-			var userName, userID string
-			if claims, ok := auth.GetClaimsFromRequest(r); ok {
-				userName = claims.UserName
-				userID = claims.UserID
-			}
+			claims, _ := auth.GetClaimsFromRequest(r)
 
 			// Check if SSR
 			var base string
@@ -221,21 +227,30 @@ var app = &cli.App{
 				// SSR
 				base = "base.htmx"
 			}
-			t, err := template.ParseFS(html, base, path, "components/*")
+			t, err := template.New("base").
+				Funcs(funcs()).
+				ParseFS(html, base, path, "components/*")
 			if err != nil {
-				// The page doesn't exist
-				http.Error(w, "not found", http.StatusNotFound)
+				if strings.Contains(err.Error(), "pattern matches no files") {
+					http.Error(w, "not found", http.StatusNotFound)
+					return
+				}
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 			if err := t.ExecuteTemplate(w, "base", struct {
 				UserName      string
 				UserID        string
+				Provider      string
+				Credentials   []webauthn.Credential
 				CSRFToken     string
 				Providers     map[string]auth.Provider
 				SelfHostUsers bool
 			}{
-				UserName:      userName,
-				UserID:        userID,
+				UserName:      claims.Subject,
+				UserID:        claims.ID,
+				Provider:      claims.Provider,
+				Credentials:   claims.Credentials,
 				CSRFToken:     csrf.Token(r),
 				Providers:     providers,
 				SelfHostUsers: config.SelfHostUsers,
@@ -244,10 +259,21 @@ var app = &cli.App{
 			}
 		}
 		r.Get("/*", renderFn)
+		r.Handle("/static/*", http.FileServer(http.FS(static)))
 
 		log.Info().Msg("listening")
 		return http.ListenAndServe(":3000", csrf.Protect(key)(r))
 	},
+}
+
+func base64encode(v string) string {
+	return base64.RawURLEncoding.EncodeToString([]byte(v))
+}
+
+func funcs() template.FuncMap {
+	m := sprig.TxtFuncMap()
+	m["b64urienc"] = base64encode
+	return m
 }
 
 func main() {

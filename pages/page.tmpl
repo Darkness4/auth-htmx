@@ -125,15 +125,90 @@
 
     window.location.reload();
   }
+
+  async function addSecurityKey() {
+    if (!window.PublicKeyCredential) {
+      alert('Error: this browser does not support WebAuthn.');
+      return;
+    }
+
+    let resp = await fetch(`/webauthn/add-device/begin`);
+
+    if (!resp.ok) {
+      throw new Error(await resp.text());
+    }
+
+    const options = await resp.json();
+
+    // go-webauthn returns base64 encoded values.
+    options.publicKey.challenge = Base64.toUint8Array(
+      options.publicKey.challenge
+    );
+    options.publicKey.user.id = Base64.toUint8Array(options.publicKey.user.id);
+    if (options.publicKey.excludeCredentials) {
+      options.publicKey.excludeCredentials.forEach(function (listItem) {
+        listItem.id = Base64.toUint8Array(listItem.id);
+      });
+    }
+
+    const credential = await navigator.credentials.create(options);
+
+    resp = await fetch(`/webauthn/add-device/finish`, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-Token': '{{ .CSRFToken }}',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        // go-webauthn only accepts base64 encoded values.
+        // We cannot pass credential because it's a class, not an object.
+        id: credential.id,
+        rawId: Base64.fromUint8Array(new Uint8Array(credential.rawId), true),
+        type: credential.type,
+        response: {
+          attestationObject: Base64.fromUint8Array(
+            new Uint8Array(credential.response.attestationObject),
+            true
+          ),
+          clientDataJSON: Base64.fromUint8Array(
+            new Uint8Array(credential.response.clientDataJSON),
+            true
+          ),
+        },
+      }),
+    });
+
+    if (!resp.ok) {
+      throw new Error(await resp.text());
+    }
+  }
 </script>
+
+<style>
+.credential-card {
+  font-size: 16px;
+}
+
+.credential-card > main > div {
+  margin-top: 1em;
+}
+
+.credential-card > header {
+  margin-bottom: calc(var(--pico-spacing) * 2);
+}
+
+.credential-card > footer {
+  margin-top: calc(var(--pico-spacing) * 2);
+}
+</style>
 {{ end }}
 
 {{define "body"}}
-<header>
+<header class="container">
   {{ template "Nav" . }}
 </header>
 
-<main>
+<main class="container">
   {{if not .UserID }}
   {{ template "AuthCard" . }}
   {{ else }}
@@ -150,8 +225,79 @@
       <nav hx-boost="true">
         <ul>
           <li><a href="/counter">Go To Counter</a></li>
+          {{- if eq .Provider "webauthn" }}
+          <li>
+            <button
+              class="outline"
+              _="on click call addSecurityKey()
+                catch e
+                  call notyf.error(e.message)
+                end"
+              id="webauthn-add-security-key"
+            >
+              Add Additional Security Key
+            </button>
+          </li>
+          {{- end }}
         </ul>
       </nav>
+      {{- if eq .Provider "webauthn" }}
+      <hr />
+      <h4>Security Keys</h4>
+
+      <div class="row">
+        {{- range $credential := .Credentials }}
+        <div class="col-xs-12 col-lg-4">
+          <article class="box credential-card">
+            <header>
+              <h6>{{ $credential.ID | toString | b64urienc }}</h6>
+            </header>
+
+            <main>
+              <div>
+                <strong>Public Key:</strong>
+                {{ $credential.PublicKey | toString | b64urienc }}
+              </div>
+
+              <div>
+                <strong>Attestation Type:</strong>
+                {{ $credential.AttestationType }}
+              </div>
+
+              <div>
+                <strong>Transport:</strong>
+                {{ $credential.Transport | toJson }}
+              </div>
+
+              <div>
+                <strong>Flags:</strong> {{ $credential.Flags | toPrettyJson }}
+              </div>
+
+              <div>
+                <strong>Authenticator:</strong>
+                {{ $credential.Authenticator | toPrettyJson }}
+              </div>
+            </main>
+
+            <footer class="grid">
+              <button
+                class="secondary"
+                hx-post="/webauthn/delete-device?credential={{
+                  $credential.ID | toString | b64urienc
+                }}"
+                hx-headers="{&quot;X-CSRF-Token&quot;: &quot;{{
+                  $.CSRFToken
+                }}&quot;}"
+                hx-target="closest article"
+              >
+                Delete
+              </button>
+            </footer>
+          </article>
+        </div>
+        {{- end }}
+      </div>
+      {{- end }}
     </footer>
   </article>
   {{ end }}

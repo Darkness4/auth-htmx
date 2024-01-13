@@ -115,7 +115,7 @@ func (a *Auth) CallBack() http.HandlerFunc {
 			return
 		}
 
-		token, err := a.JWTSecret.GenerateToken(userID, userName)
+		token, err := a.JWTSecret.GenerateToken(userID, userName, strings.ToLower(p))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -169,13 +169,13 @@ func (a *Auth) Middleware(next http.Handler) http.Handler {
 		}
 
 		// Store the claims in the request context for further use
-		ctx := context.WithValue(r.Context(), claimsContextKey{}, claims)
+		ctx := context.WithValue(r.Context(), claimsContextKey{}, *claims)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 // GetClaimsFromRequest is a helper function to fetch the JWT session token from an HTTP request.
-func GetClaimsFromRequest(r *http.Request) (claims *jwt.Claims, ok bool) {
-	claims, ok = r.Context().Value(claimsContextKey{}).(*jwt.Claims)
+func GetClaimsFromRequest(r *http.Request) (claims jwt.Claims, ok bool) {
+	claims, ok = r.Context().Value(claimsContextKey{}).(jwt.Claims)
 	return claims, ok
 }

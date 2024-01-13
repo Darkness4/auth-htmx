@@ -134,10 +134,22 @@ func (s *Service) FinishLogin() http.HandlerFunc {
 			return
 		}
 
+		// Re-fetch
+		user, err = s.users.Get(r.Context(), user.ID)
+		if err != nil {
+			log.Err(err).Any("user", user).Msg("failed to fetch user")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		log.Info().Any("credential", credential).Any("user", user).Msg("user logged")
+
 		// Identity is now verified
 		token, err := s.jwtSecret.GenerateToken(
 			base64.RawURLEncoding.EncodeToString(user.ID),
 			user.Name,
+			"webauthn",
+			jwt.WithCredentials(user.Credentials),
 		)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -156,6 +168,10 @@ func (s *Service) FinishLogin() http.HandlerFunc {
 	}
 }
 
+// BeginRegistration beings the webauthn flow.
+//
+// Based on the user identity, webauthn will generate options for the authenticator.
+// We send the options over JSON (not very htmx).
 func (s *Service) BeginRegistration() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := r.URL.Query().Get("name")
@@ -167,6 +183,12 @@ func (s *Service) BeginRegistration() http.HandlerFunc {
 		if err != nil {
 			log.Err(err).Any("user", user).Msg("failed to fetch user")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if len(user.Credentials) > 0 {
+			// The user has already been registered. We must login.
+			http.Error(w, "the user is already registered", http.StatusForbidden)
 			return
 		}
 		registerOptions := func(credCreationOpts *protocol.PublicKeyCredentialCreationOptions) {
@@ -198,6 +220,11 @@ func (s *Service) BeginRegistration() http.HandlerFunc {
 	}
 }
 
+// FinishRegistration finishes the webauthn flow.
+//
+// The user has created options based on the options. We fetch the registration
+// session from the session store.
+// We complete the registration.
 func (s *Service) FinishRegistration() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := r.URL.Query().Get("name")
@@ -229,19 +256,28 @@ func (s *Service) FinishRegistration() http.HandlerFunc {
 		}
 
 		// If creation was successful, store the credential object
-		// Pseudocode to add the user credential.
 		if err := s.users.AddCredential(r.Context(), user.ID, credential); err != nil {
 			log.Err(err).Any("user", user).Msg("user failed to add credential during registration")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		log.Info().Any("user", user).Msg("user created")
+		// Re-fetch
+		user, err = s.users.Get(r.Context(), user.ID)
+		if err != nil {
+			log.Err(err).Any("user", user).Msg("failed to fetch user")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		log.Info().Any("credential", credential).Any("user", user).Msg("user created")
 
 		// Identity is now verified
 		token, err := s.jwtSecret.GenerateToken(
 			base64.RawURLEncoding.EncodeToString(user.ID),
 			user.Name,
+			"webauthn",
+			jwt.WithCredentials(user.Credentials),
 		)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -257,5 +293,196 @@ func (s *Service) FinishRegistration() http.HandlerFunc {
 		}
 		http.SetCookie(w, cookie)
 		http.Redirect(w, r, "/", http.StatusFound)
+	}
+}
+
+// BeginAddDevice beings the webauthn registration flow.
+//
+// Based on the user identity, webauthn will generate options for the authenticator.
+// We send the options over JSON (not very htmx).
+//
+// Compared to BeginRegistration, BeginAddDevice uses the JWT to allow the registration.
+func (s *Service) BeginAddDevice() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		claims, ok := auth.GetClaimsFromRequest(r)
+		if !ok {
+			http.Error(w, "session not found", http.StatusForbidden)
+			return
+		}
+
+		userID, err := base64.RawURLEncoding.DecodeString(claims.ID)
+		if err != nil {
+			log.Err(err).Any("claims", claims).Msg("failed to parse claims")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		user, err := s.users.Get(r.Context(), userID) // Find or create the new user
+		if err != nil {
+			log.Err(err).Any("user", user).Msg("failed to fetch user")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		registerOptions := func(credCreationOpts *protocol.PublicKeyCredentialCreationOptions) {
+			credCreationOpts.CredentialExcludeList = user.ExcludeCredentialDescriptorList()
+		}
+		options, session, err := s.webAuthn.BeginRegistration(user, registerOptions)
+		if err != nil {
+			log.Err(err).Any("user", user).Msg("user failed to begin registration")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// store the session values
+		if err := s.store.Save(r.Context(), session); err != nil {
+			// Maybe a Fatal or Panic should be user here.
+			log.Err(err).Any("user", user).Msg("failed to save session in store")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		o, err := json.Marshal(options)
+		if err != nil {
+			log.Err(err).Any("user", user).Msg("failed to respond")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Write(o)
+	}
+}
+
+// FinishAddDevice finishes the webauthn registration flow.
+//
+// The user has created options based on the options. We fetch the registration
+// session from the session store.
+// We complete the registration.
+func (s *Service) FinishAddDevice() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		claims, ok := auth.GetClaimsFromRequest(r)
+		if !ok {
+			http.Error(w, "session not found", http.StatusForbidden)
+			return
+		}
+
+		userID, err := base64.RawURLEncoding.DecodeString(claims.ID)
+		if err != nil {
+			log.Err(err).Any("claims", claims).Msg("failed to parse claims")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		user, err := s.users.Get(r.Context(), userID) // Find or create the new user
+		if err != nil {
+			log.Err(err).Any("user", user).Msg("failed to fetch user")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Get the session data stored from the function above
+		session, err := s.store.Get(r.Context(), user.ID)
+		if err != nil {
+			// Maybe a Fatal or Panic should be user here.
+			log.Err(err).Any("user", user).Msg("failed to save session in store")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		credential, err := s.webAuthn.FinishRegistration(user, *session, r)
+		if err != nil {
+			log.Err(err).Any("user", user).Msg("user failed to finish registration")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// If creation was successful, store the credential object
+		if err := s.users.AddCredential(r.Context(), user.ID, credential); err != nil {
+			log.Err(err).Any("user", user).Msg("user failed to add credential during registration")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Re-fetch
+		user, err = s.users.Get(r.Context(), user.ID)
+		if err != nil {
+			log.Err(err).Any("user", user).Msg("failed to fetch user")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		log.Info().Any("credential", credential).Any("user", user).Msg("device added")
+
+		// Identity is now verified
+		token, err := s.jwtSecret.GenerateToken(
+			base64.RawURLEncoding.EncodeToString(user.ID),
+			user.Name,
+			"webauthn",
+			jwt.WithCredentials(user.Credentials),
+		)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		cookie := &http.Cookie{
+			Name:     auth.TokenCookieKey,
+			Value:    token,
+			Path:     "/",
+			Expires:  time.Now().Add(jwt.ExpiresDuration),
+			HttpOnly: true,
+		}
+		http.SetCookie(w, cookie)
+		http.Redirect(w, r, "/", http.StatusFound)
+	}
+}
+
+// DeleteDevice deletes a webauthn credential.
+func (s *Service) DeleteDevice() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		credential := r.URL.Query().Get("credential")
+		if credential == "" {
+			http.Error(w, "empty credential", http.StatusBadRequest)
+			return
+		}
+
+		cred, err := base64.RawURLEncoding.DecodeString(credential)
+		if err != nil {
+			log.Err(err).Str("credential", credential).Msg("failed to parse credential")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		claims, ok := auth.GetClaimsFromRequest(r)
+		if !ok {
+			http.Error(w, "session not found", http.StatusForbidden)
+			return
+		}
+
+		userID, err := base64.RawURLEncoding.DecodeString(claims.ID)
+		if err != nil {
+			log.Err(err).Any("claims", claims).Msg("failed to parse claims")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		user, err := s.users.Get(r.Context(), userID) // Find or create the new user
+		if err != nil {
+			log.Err(err).Any("user", user).Msg("failed to fetch user")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if len(user.Credentials) <= 1 {
+			http.Error(w, "last credential cannot be deleted", http.StatusForbidden)
+			return
+		}
+
+		// If creation was successful, store the credential object
+		if err := s.users.RemoveCredential(r.Context(), user.ID, cred); err != nil {
+			log.Err(err).Any("user", user).Msg("user failed to remove credential")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 }
