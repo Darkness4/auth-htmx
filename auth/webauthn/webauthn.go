@@ -5,33 +5,46 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Darkness4/auth-htmx/auth/webauthn/session"
 	"github.com/Darkness4/auth-htmx/database/user"
-	"github.com/go-chi/chi/v5"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/rs/zerolog/log"
 )
 
 type Service struct {
-	webAuthn webauthn.WebAuthn
+	webAuthn *webauthn.WebAuthn
 	users    user.Repository
+	store    session.Store
 }
 
 func New(
-	webAuthn webauthn.WebAuthn,
+	webAuthn *webauthn.WebAuthn,
 	users user.Repository,
+	store session.Store,
 ) *Service {
+	if webAuthn == nil {
+		panic("webAuthn is nil")
+	}
 	if users == nil {
 		panic("users is nil")
+	}
+	if store == nil {
+		panic("store is nil")
 	}
 	return &Service{
 		webAuthn: webAuthn,
 		users:    users,
+		store:    store,
 	}
 }
 
 func (s *Service) BeginLogin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := chi.URLParam(r, "name")
+		name := r.URL.Query().Get("name")
+		if name == "" {
+			http.Error(w, "no name passed as query params", http.StatusBadRequest)
+			return
+		}
 		user, err := s.users.GetByName(r.Context(), name)
 		if err != nil {
 			log.Err(err).Any("user", user).Msg("failed to fetch user")
@@ -47,7 +60,12 @@ func (s *Service) BeginLogin() http.HandlerFunc {
 		}
 
 		// store the session values
-		datastore.SaveSession(session)
+		if err := s.store.Save(r.Context(), session); err != nil {
+			// Maybe a Fatal or Panic should be user here.
+			log.Err(err).Any("user", user).Msg("failed to save session in store")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
 		o, err := json.Marshal(options)
 		if err != nil {
@@ -62,7 +80,11 @@ func (s *Service) BeginLogin() http.HandlerFunc {
 
 func (s *Service) FinishLogin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := chi.URLParam(r, "name")
+		name := r.URL.Query().Get("name")
+		if name == "" {
+			http.Error(w, "no name passed as query params", http.StatusBadRequest)
+			return
+		}
 		user, err := s.users.GetByName(r.Context(), name)
 		if err != nil {
 			log.Err(err).Any("user", user).Msg("failed to fetch user")
@@ -71,9 +93,15 @@ func (s *Service) FinishLogin() http.HandlerFunc {
 		}
 
 		// Get the session data stored from the function above
-		session := datastore.GetSession()
+		session, err := s.store.Get(r.Context(), user.ID)
+		if err != nil {
+			// Maybe a Fatal or Panic should be user here.
+			log.Err(err).Any("user", user).Msg("failed to save session in store")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-		credential, err := s.webAuthn.FinishLogin(user, session, r)
+		credential, err := s.webAuthn.FinishLogin(user, *session, r)
 		if err != nil {
 			log.Err(err).Any("user", user).Msg("user failed to finish login")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -89,7 +117,6 @@ func (s *Service) FinishLogin() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		datastore.SaveUser(user)
 
 		fmt.Fprintln(w, "Login Success")
 	}
@@ -97,14 +124,17 @@ func (s *Service) FinishLogin() http.HandlerFunc {
 
 func (s *Service) BeginRegistration() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := chi.URLParam(r, "name")
-		user, err := s.users.GetByName(r.Context(), name) // Find or create the new user
+		name := r.URL.Query().Get("name")
+		if name == "" {
+			http.Error(w, "no name passed as query params", http.StatusBadRequest)
+			return
+		}
+		user, err := s.users.GetOrCreateByName(r.Context(), name) // Find or create the new user
 		if err != nil {
 			log.Err(err).Any("user", user).Msg("failed to fetch user")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		// TODO: create user
 		options, session, err := s.webAuthn.BeginRegistration(user)
 		if err != nil {
 			log.Err(err).Any("user", user).Msg("user failed to begin registration")
@@ -113,7 +143,12 @@ func (s *Service) BeginRegistration() http.HandlerFunc {
 		}
 
 		// store the session values
-		datastore.SaveSession(session)
+		if err := s.store.Save(r.Context(), session); err != nil {
+			// Maybe a Fatal or Panic should be user here.
+			log.Err(err).Any("user", user).Msg("failed to save session in store")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
 		o, err := json.Marshal(options)
 		if err != nil {
@@ -128,7 +163,11 @@ func (s *Service) BeginRegistration() http.HandlerFunc {
 
 func (s *Service) FinishRegistration() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := chi.URLParam(r, "name")
+		name := r.URL.Query().Get("name")
+		if name == "" {
+			http.Error(w, "no name passed as query params", http.StatusBadRequest)
+			return
+		}
 		user, err := s.users.GetByName(r.Context(), name)
 		if err != nil {
 			log.Err(err).Any("user", user).Msg("failed to fetch user")
@@ -137,9 +176,15 @@ func (s *Service) FinishRegistration() http.HandlerFunc {
 		}
 
 		// Get the session data stored from the function above
-		session := datastore.GetSession()
+		session, err := s.store.Get(r.Context(), user.ID)
+		if err != nil {
+			// Maybe a Fatal or Panic should be user here.
+			log.Err(err).Any("user", user).Msg("failed to save session in store")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-		credential, err := s.webAuthn.FinishRegistration(user, session, r)
+		credential, err := s.webAuthn.FinishRegistration(user, *session, r)
 		if err != nil {
 			log.Err(err).Any("user", user).Msg("user failed to finish registration")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -153,7 +198,6 @@ func (s *Service) FinishRegistration() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		datastore.SaveUser(user)
 
 		log.Info().Any("user", user).Msg("user created")
 		fmt.Fprintln(w, "Registration Success")

@@ -1,5 +1,114 @@
 {{define "head"}}
 <title>Home - Auth HTMX</title>
+
+<script src="https://cdn.jsdelivr.net/npm/js-base64@3.7.5/base64.min.js"></script>
+<script>
+  async function login(name) {
+    if (!window.PublicKeyCredential) {
+      alert('Error: this browser does not support WebAuthn');
+      return;
+    }
+
+    let resp = await fetch(`/webauthn/login/begin?name=${name}`);
+    const options = await resp.json();
+
+    options.publicKey.challenge = Base64.toUint8Array(
+      options.publicKey.challenge
+    );
+    options.publicKey.allowCredentials.forEach(function (listItem) {
+      listItem.id = Base64.toUint8Array(listItem.id);
+    });
+
+    const assertion = await navigator.credentials.get(options);
+
+    console.log(assertion);
+
+    resp = await fetch(`/webauthn/login/finish?name=${name}`, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-Token': '{{ .CSRFToken }}',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: assertion.id,
+        rawId: Base64.fromUint8Array(new Uint8Array(assertion.rawId), true),
+        type: assertion.type,
+        response: {
+          authenticatorData: Base64.fromUint8Array(
+            new Uint8Array(assertion.response.authenticatorData),
+            true
+          ),
+          clientDataJSON: Base64.fromUint8Array(
+            new Uint8Array(assertion.response.clientDataJSON),
+            true
+          ),
+          signature: Base64.fromUint8Array(
+            new Uint8Array(assertion.response.signature),
+            true
+          ),
+          userHandle: Base64.fromUint8Array(
+            new Uint8Array(assertion.response.userHandle),
+            true
+          ),
+        },
+      }),
+    });
+
+    console.log(await resp.text());
+  }
+
+  async function register(name) {
+    if (!window.PublicKeyCredential) {
+      alert('Error: this browser does not support WebAuthn');
+      return;
+    }
+
+    let resp = await fetch(`/webauthn/register/begin?name=${name}`);
+    const options = await resp.json();
+
+    // go-webauthn returns base64 encoded values.
+    options.publicKey.challenge = Base64.toUint8Array(
+      options.publicKey.challenge
+    );
+    options.publicKey.user.id = Base64.toUint8Array(options.publicKey.user.id);
+    if (options.publicKey.excludeCredentials) {
+      for (var i = 0; i < options.publicKey.excludeCredentials.length; i++) {
+        options.publicKey.excludeCredentials[i].id = Base64.toUint8Array(
+          options.publicKey.excludeCredentials[i].id
+        );
+      }
+    }
+
+    const credential = await navigator.credentials.create(options);
+
+    resp = await fetch(`/webauthn/register/finish?name=${name}`, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-Token': '{{ .CSRFToken }}',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        // go-webauthn only accepts base64 encoded values.
+        // We cannot pass credential because it's a class, not an object.
+        id: credential.id,
+        rawId: Base64.fromUint8Array(new Uint8Array(credential.rawId), true),
+        type: credential.type,
+        response: {
+          attestationObject: Base64.fromUint8Array(
+            new Uint8Array(credential.response.attestationObject),
+            true
+          ),
+          clientDataJSON: Base64.fromUint8Array(
+            new Uint8Array(credential.response.clientDataJSON),
+            true
+          ),
+        },
+      }),
+    });
+
+    console.log(await resp.text());
+  }
+</script>
 {{ end }}
 
 {{define "body"}}

@@ -9,9 +9,6 @@ INSERT INTO counters (user_id, count) VALUES (?, 1);
 
 -- Self-Hosted users
 
--- name: GetUser :one
-SELECT * FROM users WHERE id = ? LIMIT 1;
-
 -- name: GetUserByName :one
 SELECT * FROM users WHERE name = ? LIMIT 1;
 

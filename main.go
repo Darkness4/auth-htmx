@@ -15,11 +15,15 @@ import (
 	"embed"
 
 	"github.com/Darkness4/auth-htmx/auth"
+	internalwebauthn "github.com/Darkness4/auth-htmx/auth/webauthn"
+	"github.com/Darkness4/auth-htmx/auth/webauthn/session"
 	"github.com/Darkness4/auth-htmx/database"
 	"github.com/Darkness4/auth-htmx/database/counter"
+	"github.com/Darkness4/auth-htmx/database/user"
 	"github.com/Darkness4/auth-htmx/handler"
 	"github.com/Darkness4/auth-htmx/jwt"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/gorilla/csrf"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -159,6 +163,30 @@ var app = &cli.App{
 		r.Get("/logout", authService.Logout())
 		r.Get("/callback", authService.CallBack())
 
+		webAuthn, err := webauthn.New(&webauthn.Config{
+			RPDisplayName: "Auth HTMX",             // Display Name for your site
+			RPID:          "localhost",             // Generally the domain name for your site
+			RPOrigin:      "http://localhost:3000", // The origin URL for WebAuthn requests
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		webauthnS := internalwebauthn.New(webAuthn, user.NewRepository(d), session.NewInMemory())
+
+		if config.SelfHostUsers {
+			r.Route("/webauthn", func(r chi.Router) {
+				r.Route("/login", func(r chi.Router) {
+					r.Get("/begin", webauthnS.BeginLogin())
+					r.Post("/finish", webauthnS.FinishLogin())
+				})
+				r.Route("/register", func(r chi.Router) {
+					r.Get("/begin", webauthnS.BeginRegistration())
+					r.Post("/finish", webauthnS.FinishRegistration())
+				})
+			})
+		}
+
 		// Backend
 		cr := counter.NewRepository(d)
 		r.Post("/count", handler.Count(cr))
@@ -190,15 +218,17 @@ var app = &cli.App{
 				return
 			}
 			if err := t.ExecuteTemplate(w, "base", struct {
-				UserName  string
-				UserID    string
-				CSRFToken string
-				Providers map[string]auth.Provider
+				UserName      string
+				UserID        string
+				CSRFToken     string
+				Providers     map[string]auth.Provider
+				SelfHostUsers bool
 			}{
-				UserName:  userName,
-				UserID:    userID,
-				CSRFToken: csrf.Token(r),
-				Providers: providers,
+				UserName:      userName,
+				UserID:        userID,
+				CSRFToken:     csrf.Token(r),
+				Providers:     providers,
+				SelfHostUsers: config.SelfHostUsers,
 			}); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}

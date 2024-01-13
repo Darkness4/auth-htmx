@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/json"
+	"errors"
 
 	"github.com/Darkness4/auth-htmx/database"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -12,7 +13,7 @@ import (
 
 // Repository defines the user methods.
 type Repository interface {
-	Get(ctx context.Context, id []byte) (*User, error)
+	GetOrCreateByName(ctx context.Context, name string) (*User, error)
 	GetByName(ctx context.Context, name string) (*User, error)
 	Create(ctx context.Context, name string, displayName string) (*User, error)
 	AddCredential(ctx context.Context, id []byte, credential *webauthn.Credential) error
@@ -107,19 +108,19 @@ func (r *repository) Create(ctx context.Context, name string, displayName string
 	return fromModel(&u, []webauthn.Credential{}), nil
 }
 
-// Get a user from the database.
-func (r *repository) Get(ctx context.Context, id []byte) (*User, error) {
-	u, err := r.Queries.GetUser(ctx, id)
-	if err != nil {
+// GetOrCreateByName a user from the databse.
+func (r *repository) GetOrCreateByName(ctx context.Context, name string) (*User, error) {
+	u, err := r.GetByName(ctx, name)
+	if errors.Is(err, sql.ErrNoRows) {
+		u, err = r.Create(ctx, name, name)
+		if err != nil {
+			return nil, err
+		}
+	} else if err != nil {
 		return nil, err
 	}
 
-	credentials, err := r.getCredentialsByUser(ctx, u.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return fromModel(&u, credentials), nil
+	return u, nil
 }
 
 // GetByName a user from the database.
