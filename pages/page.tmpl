@@ -181,6 +181,8 @@
     if (!resp.ok) {
       throw new Error(await resp.text());
     }
+
+    window.location.reload();
   }
 </script>
 
