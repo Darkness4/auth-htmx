@@ -76,6 +76,9 @@ func (r *repository) AddCredential(
 
 // UpdateCredential of a user from the database.
 func (r *repository) UpdateCredential(ctx context.Context, credential *webauthn.Credential) error {
+	if credential.Transport == nil {
+		credential.Transport = []protocol.AuthenticatorTransport{}
+	}
 	transport, err := json.Marshal(credential.Transport)
 	if err != nil {
 		return err
