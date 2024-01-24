@@ -18,6 +18,7 @@ import (
 	"embed"
 
 	"github.com/Darkness4/auth-htmx/auth"
+	"github.com/Darkness4/auth-htmx/auth/oauth"
 	internalwebauthn "github.com/Darkness4/auth-htmx/auth/webauthn"
 	"github.com/Darkness4/auth-htmx/auth/webauthn/session"
 	"github.com/Darkness4/auth-htmx/database"
@@ -124,7 +125,7 @@ var app = &cli.App{
 		}
 
 		// Auth
-		authService := auth.Auth{
+		authService := oauth.OAuth{
 			JWTSecret: jwt.Secret(jwtSecret),
 			Providers: providers,
 		}
@@ -226,7 +227,7 @@ var app = &cli.App{
 				Provider      string
 				Credentials   []webauthn.Credential
 				CSRFToken     string
-				Providers     map[string]auth.Provider
+				Providers     map[string]oauth.Provider
 				SelfHostUsers bool
 			}{
 				UserName:      claims.Subject,
