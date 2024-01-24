@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Darkness4/auth-htmx/auth"
 	"github.com/Darkness4/auth-htmx/auth/webauthn/session"
 	"github.com/Darkness4/auth-htmx/database/user"
 	"github.com/Darkness4/auth-htmx/jwt"
@@ -162,7 +161,7 @@ func (s *Service) FinishLogin() http.HandlerFunc {
 		}
 
 		cookie := &http.Cookie{
-			Name:     auth.TokenCookieKey,
+			Name:     jwt.TokenCookieKey,
 			Value:    token,
 			Path:     "/",
 			Expires:  time.Now().Add(jwt.ExpiresDuration),
@@ -290,7 +289,7 @@ func (s *Service) FinishRegistration() http.HandlerFunc {
 		}
 
 		cookie := &http.Cookie{
-			Name:     auth.TokenCookieKey,
+			Name:     jwt.TokenCookieKey,
 			Value:    token,
 			Path:     "/",
 			Expires:  time.Now().Add(jwt.ExpiresDuration),
@@ -309,7 +308,7 @@ func (s *Service) FinishRegistration() http.HandlerFunc {
 // Compared to BeginRegistration, BeginAddDevice uses the JWT to allow the registration.
 func (s *Service) BeginAddDevice() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		claims, ok := auth.GetClaimsFromRequest(r)
+		claims, ok := jwt.GetClaimsFromRequest(r)
 		if !ok {
 			http.Error(w, "session not found", http.StatusForbidden)
 			return
@@ -365,7 +364,7 @@ func (s *Service) BeginAddDevice() http.HandlerFunc {
 // We complete the registration.
 func (s *Service) FinishAddDevice() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		claims, ok := auth.GetClaimsFromRequest(r)
+		claims, ok := jwt.GetClaimsFromRequest(r)
 		if !ok {
 			http.Error(w, "session not found", http.StatusForbidden)
 			return
@@ -431,7 +430,7 @@ func (s *Service) FinishAddDevice() http.HandlerFunc {
 		}
 
 		cookie := &http.Cookie{
-			Name:     auth.TokenCookieKey,
+			Name:     jwt.TokenCookieKey,
 			Value:    token,
 			Path:     "/",
 			Expires:  time.Now().Add(jwt.ExpiresDuration),
@@ -458,7 +457,7 @@ func (s *Service) DeleteDevice() http.HandlerFunc {
 			return
 		}
 
-		claims, ok := auth.GetClaimsFromRequest(r)
+		claims, ok := jwt.GetClaimsFromRequest(r)
 		if !ok {
 			http.Error(w, "session not found", http.StatusForbidden)
 			return

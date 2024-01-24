@@ -133,25 +133,8 @@ var app = &cli.App{
 
 		// Router
 		r := chi.NewRouter()
+		r.Use(jwt.Secret(jwtSecret).Middleware)
 		r.Use(hlog.NewHandler(log.Logger))
-		r.Use(authService.Middleware)
-
-		// Auth Guard
-		r.Use(func(next http.Handler) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				_, isAuth := auth.GetClaimsFromRequest(r)
-
-				if !isAuth {
-					switch r.URL.Path {
-					case "/counter":
-						http.Error(w, "unauthorized", http.StatusUnauthorized)
-						return
-					}
-				}
-
-				next.ServeHTTP(w, r)
-			})
-		})
 
 		// DB
 		d, err := sql.Open("sqlite", dbFile)
@@ -166,7 +149,7 @@ var app = &cli.App{
 
 		// Auth
 		r.Get("/login", authService.Login())
-		r.Get("/logout", authService.Logout())
+		r.Get("/logout", auth.Logout)
 		r.Get("/callback", authService.CallBack())
 
 		u, err := url.Parse(publicURL)
@@ -217,7 +200,7 @@ var app = &cli.App{
 			path := filepath.Clean(r.URL.Path)
 			path = filepath.Clean(fmt.Sprintf("pages/%s/page.tmpl", path))
 
-			claims, _ := auth.GetClaimsFromRequest(r)
+			claims, _ := jwt.GetClaimsFromRequest(r)
 
 			// Check if SSR
 			var base string

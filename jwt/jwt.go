@@ -2,12 +2,21 @@
 package jwt
 
 import (
+	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/golang-jwt/jwt/v5"
 )
+
+const (
+	// TokenCookieKey is the key of the cookie stored in the context.
+	TokenCookieKey = "session_token"
+)
+
+type claimsContextKey struct{}
 
 // ExpiresDuration is the duration when a user session expires.
 const ExpiresDuration = 24 * time.Hour
@@ -105,4 +114,33 @@ func (s Secret) VerifyToken(tokenString string) (*Claims, error) {
 	}
 
 	return nil, fmt.Errorf("invalid token")
+}
+
+// Middleware is an authentication guard for HTTP servers.
+func (jwt Secret) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Get the JWT token from the request header
+		cookie, err := r.Cookie(TokenCookieKey)
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Verify the JWT token
+		claims, err := jwt.VerifyToken(cookie.Value)
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Store the claims in the request context for further use
+		ctx := context.WithValue(r.Context(), claimsContextKey{}, *claims)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// GetClaimsFromRequest is a helper function to fetch the JWT session token from an HTTP request.
+func GetClaimsFromRequest(r *http.Request) (claims Claims, ok bool) {
+	claims, ok = r.Context().Value(claimsContextKey{}).(Claims)
+	return claims, ok
 }

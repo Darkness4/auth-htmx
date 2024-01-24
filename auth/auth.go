@@ -2,7 +2,6 @@
 package auth
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -13,13 +12,6 @@ import (
 	"github.com/gorilla/csrf"
 	"github.com/rs/zerolog/log"
 )
-
-const (
-	// TokenCookieKey is the key of the cookie stored in the context.
-	TokenCookieKey = "session_token"
-)
-
-type claimsContextKey struct{}
 
 // Auth is a service that provides HTTP handlers and middlewares used for authentication.
 type Auth struct {
@@ -123,7 +115,7 @@ func (a *Auth) CallBack() http.HandlerFunc {
 		}
 
 		cookie := &http.Cookie{
-			Name:     TokenCookieKey,
+			Name:     jwt.TokenCookieKey,
 			Value:    token,
 			Path:     "/",
 			Expires:  time.Now().Add(jwt.ExpiresDuration),
@@ -135,48 +127,16 @@ func (a *Auth) CallBack() http.HandlerFunc {
 }
 
 // Logout removes session cookies and redirect to home.
-func (a *Auth) Logout() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie(TokenCookieKey)
-		if err != nil {
-			// Ignore error. Cookie doesn't exists.
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			return
-		}
-		cookie.Value = ""
-		cookie.Path = "/"
-		cookie.Expires = time.Now().Add(-1 * time.Hour)
-		http.SetCookie(w, cookie)
+func Logout(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie(jwt.TokenCookieKey)
+	if err != nil {
+		// Ignore error. Cookie doesn't exists.
 		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 	}
-}
-
-// Middleware is an authentication guard for HTTP servers.
-func (a *Auth) Middleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Get the JWT token from the request header
-		cookie, err := r.Cookie(TokenCookieKey)
-		if err != nil {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		// Verify the JWT token
-		claims, err := a.JWTSecret.VerifyToken(cookie.Value)
-		if err != nil {
-			log.Error().Err(err).Msg("token verification failed")
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		// Store the claims in the request context for further use
-		ctx := context.WithValue(r.Context(), claimsContextKey{}, *claims)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-// GetClaimsFromRequest is a helper function to fetch the JWT session token from an HTTP request.
-func GetClaimsFromRequest(r *http.Request) (claims jwt.Claims, ok bool) {
-	claims, ok = r.Context().Value(claimsContextKey{}).(jwt.Claims)
-	return claims, ok
+	cookie.Value = ""
+	cookie.Path = "/"
+	cookie.Expires = time.Now().Add(-1 * time.Hour)
+	http.SetCookie(w, cookie)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
