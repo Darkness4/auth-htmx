@@ -242,6 +242,7 @@ var app = &cli.App{
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 		}
+		r.With(jwt.Deny).Get("/counter", renderFn)
 		r.Get("/*", renderFn)
 		r.Handle("/static/*", http.FileServer(http.FS(static)))
 

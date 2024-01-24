@@ -116,7 +116,7 @@ func (s Secret) VerifyToken(tokenString string) (*Claims, error) {
 	return nil, fmt.Errorf("invalid token")
 }
 
-// Middleware is an authentication guard for HTTP servers.
+// Middleware is a middleware that inject the JWT in the context for HTTP servers.
 func (jwt Secret) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get the JWT token from the request header
@@ -136,6 +136,19 @@ func (jwt Secret) Middleware(next http.Handler) http.Handler {
 		// Store the claims in the request context for further use
 		ctx := context.WithValue(r.Context(), claimsContextKey{}, *claims)
 		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// Deny is an authentication guard for HTTP servers.
+func Deny(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, ok := GetClaimsFromRequest(r)
+		if !ok {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		next.ServeHTTP(w, r)
 	})
 }
 
