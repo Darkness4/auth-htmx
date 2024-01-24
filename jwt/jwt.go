@@ -117,7 +117,7 @@ func (s Secret) VerifyToken(tokenString string) (*Claims, error) {
 }
 
 // Middleware is a middleware that inject the JWT in the context for HTTP servers.
-func (jwt Secret) Middleware(next http.Handler) http.Handler {
+func (s Secret) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get the JWT token from the request header
 		cookie, err := r.Cookie(TokenCookieKey)
@@ -127,7 +127,7 @@ func (jwt Secret) Middleware(next http.Handler) http.Handler {
 		}
 
 		// Verify the JWT token
-		claims, err := jwt.VerifyToken(cookie.Value)
+		claims, err := s.VerifyToken(cookie.Value)
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return
