@@ -118,8 +118,6 @@ var app = &cli.App{
 			return err
 		}
 
-		// JWT
-
 		providers, err := auth.GenerateProviders(ctx, config, fmt.Sprintf("%s/callback", publicURL))
 		if err != nil {
 			return err
