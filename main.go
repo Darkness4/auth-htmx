@@ -241,7 +241,10 @@ var app = &cli.App{
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 		}
-		r.With(jwt.Deny).Get("/counter", renderFn)
+		r.Route("/counter", func(r chi.Router) {
+			r.Use(jwt.Deny)
+			r.Get("/", renderFn)
+		})
 		r.Get("/*", renderFn)
 		r.Handle("/static/*", http.FileServer(http.FS(static)))
 
