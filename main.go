@@ -61,7 +61,7 @@ var app = &cli.App{
 		&cli.StringFlag{
 			Name:  "csrf.secret",
 			Usage: "A 32 bytes hex secret",
-			Action: func(ctx *cli.Context, s string) error {
+			Action: func(_ *cli.Context, s string) error {
 				data, err := hex.DecodeString(s)
 				if err != nil {
 					panic(err)
