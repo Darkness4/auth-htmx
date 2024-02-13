@@ -41,6 +41,8 @@ func (a *OAuth) Login() http.HandlerFunc {
 			Value:    token,
 			Expires:  time.Now().Add(1 * time.Minute), // Set expiration time as needed
 			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteLaxMode,
 		}
 		// State contain the provider and the csrf token.
 		state := fmt.Sprintf("%s,%s", token, p)
@@ -120,6 +122,8 @@ func (a *OAuth) CallBack() http.HandlerFunc {
 			Path:     "/",
 			Expires:  time.Now().Add(jwt.ExpiresDuration),
 			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteLaxMode,
 		}
 		http.SetCookie(w, cookie)
 		http.Redirect(w, r, "/", http.StatusFound)

@@ -166,6 +166,8 @@ func (s *Service) FinishLogin() http.HandlerFunc {
 			Path:     "/",
 			Expires:  time.Now().Add(jwt.ExpiresDuration),
 			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteLaxMode,
 		}
 		http.SetCookie(w, cookie)
 		http.Redirect(w, r, "/", http.StatusFound)
@@ -294,6 +296,8 @@ func (s *Service) FinishRegistration() http.HandlerFunc {
 			Path:     "/",
 			Expires:  time.Now().Add(jwt.ExpiresDuration),
 			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteLaxMode,
 		}
 		http.SetCookie(w, cookie)
 		http.Redirect(w, r, "/", http.StatusFound)
@@ -435,6 +439,8 @@ func (s *Service) FinishAddDevice() http.HandlerFunc {
 			Path:     "/",
 			Expires:  time.Now().Add(jwt.ExpiresDuration),
 			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteLaxMode,
 		}
 		http.SetCookie(w, cookie)
 		http.Redirect(w, r, "/", http.StatusFound)
