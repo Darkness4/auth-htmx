@@ -20,7 +20,7 @@ import (
 	"github.com/Darkness4/auth-htmx/auth"
 	"github.com/Darkness4/auth-htmx/auth/oauth"
 	internalwebauthn "github.com/Darkness4/auth-htmx/auth/webauthn"
-	"github.com/Darkness4/auth-htmx/auth/webauthn/session"
+	"github.com/Darkness4/auth-htmx/auth/webauthn/session/memory"
 	"github.com/Darkness4/auth-htmx/database"
 	"github.com/Darkness4/auth-htmx/database/counter"
 	"github.com/Darkness4/auth-htmx/database/user"
@@ -168,7 +168,7 @@ var app = &cli.App{
 		webauthnS := internalwebauthn.New(
 			webAuthn,
 			user.NewRepository(d),
-			session.NewInMemory(),
+			memory.NewStore(),
 			jwt.Secret(jwtSecret),
 		)
 

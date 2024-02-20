@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/Darkness4/auth-htmx/auth/webauthn/session"
-	"github.com/Darkness4/auth-htmx/database/user"
+	"github.com/Darkness4/auth-htmx/auth/webauthn/user"
 	"github.com/Darkness4/auth-htmx/jwt"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"

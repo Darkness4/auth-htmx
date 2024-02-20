@@ -10,7 +10,7 @@ import (
 )
 
 // Count increments the counter and returns the new value.
-func Count(counter counter.Repository) http.HandlerFunc {
+func Count(counter *counter.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		claims, ok := jwt.GetClaimsFromRequest(r)
 		if !ok {

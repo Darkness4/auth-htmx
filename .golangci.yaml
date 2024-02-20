@@ -2,6 +2,7 @@ linters:
   enable:
     # Drop-in replacement of `golint`.
     - revive
+    - ireturn
 
 issues:
   include:
