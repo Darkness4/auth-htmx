@@ -6,7 +6,7 @@ toolchain go1.21.3
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
-	github.com/coreos/go-oidc/v3 v3.9.0
+	github.com/coreos/go-oidc/v3 v3.10.0
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/go-webauthn/webauthn v0.10.2
 	github.com/golang-jwt/jwt/v5 v5.2.1
@@ -82,6 +82,7 @@ require (
 	github.com/fxamacker/cbor/v2 v2.6.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.1 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.1 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.1 // indirect
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/go-webauthn/x v0.1.9 // indirect
