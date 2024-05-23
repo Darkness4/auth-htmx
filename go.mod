@@ -13,7 +13,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.17.1
 	github.com/gorilla/csrf v1.7.2
 	github.com/joho/godotenv v1.5.1
-	github.com/rs/zerolog v1.32.0
+	github.com/rs/zerolog v1.33.0
 	github.com/sqlc-dev/sqlc v1.26.0
 	github.com/urfave/cli/v2 v2.27.2
 	golang.org/x/oauth2 v0.20.0
