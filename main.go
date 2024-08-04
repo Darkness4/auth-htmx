@@ -159,7 +159,7 @@ var app = &cli.App{
 		webAuthn, err := webauthn.New(&webauthn.Config{
 			RPDisplayName: "Auth HTMX",  // Display Name for your site
 			RPID:          u.Hostname(), // Generally the domain name for your site
-			RPOrigin:      publicURL,    // The origin URL for WebAuthn requests
+			RPOrigins:     []string{publicURL},
 		})
 		if err != nil {
 			panic(err)
