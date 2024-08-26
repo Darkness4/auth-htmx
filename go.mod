@@ -1,14 +1,14 @@
 module github.com/Darkness4/auth-htmx
 
-go 1.22
+go 1.23
 
-toolchain go1.22.6
+toolchain go1.23.0
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/coreos/go-oidc/v3 v3.11.0
 	github.com/go-chi/chi/v5 v5.1.0
-	github.com/go-webauthn/webauthn v0.11.1
+	github.com/go-webauthn/webauthn v0.11.2
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/golang-migrate/migrate/v4 v4.17.1
 	github.com/gorilla/csrf v1.7.2
@@ -85,7 +85,7 @@ require (
 	github.com/go-jose/go-jose/v4 v4.0.4 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
-	github.com/go-webauthn/x v0.1.12 // indirect
+	github.com/go-webauthn/x v0.1.14 // indirect
 	github.com/goccy/go-json v0.9.11 // indirect
 	github.com/gocql/gocql v0.0.0-20210515062232-b7ef815b4556 // indirect
 	github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 // indirect
