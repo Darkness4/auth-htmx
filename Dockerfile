@@ -16,7 +16,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
   CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -a -ldflags "-s -w -X main.version=${VERSION}" -o /out/auth-htmx ./main.go
 
 # ---
-FROM registry-1.docker.io/library/busybox:1.36.1
+FROM registry-1.docker.io/library/busybox:1.37.0
 
 ARG TARGETOS TARGETARCH
 
