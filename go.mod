@@ -6,7 +6,7 @@ toolchain go1.23.4
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
-	github.com/coreos/go-oidc/v3 v3.11.0
+	github.com/coreos/go-oidc/v3 v3.12.0
 	github.com/go-chi/chi/v5 v5.2.0
 	github.com/go-webauthn/webauthn v0.11.2
 	github.com/golang-jwt/jwt/v5 v5.2.1
