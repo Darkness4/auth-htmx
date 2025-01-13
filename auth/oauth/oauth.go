@@ -46,14 +46,12 @@ func (a *OAuth) Login() http.HandlerFunc {
 		}
 		// State contain the provider and the csrf token.
 		state := fmt.Sprintf("%s,%s", token, p)
-		authCodeURL := provider.AuthCodeURL(state)
-		fmt.Println(authCodeURL)
 
 		http.SetCookie(w, cookie)
 		http.Redirect(
 			w,
 			r,
-			authCodeURL,
+			provider.AuthCodeURL(state),
 			http.StatusFound,
 		)
 	}
