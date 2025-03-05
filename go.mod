@@ -1,8 +1,8 @@
 module github.com/Darkness4/auth-htmx
 
-go 1.23
+go 1.23.0
 
-toolchain go1.24.0
+toolchain go1.24.1
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
@@ -16,7 +16,7 @@ require (
 	github.com/rs/zerolog v1.33.0
 	github.com/sqlc-dev/sqlc v1.28.0
 	github.com/urfave/cli/v2 v2.27.5
-	golang.org/x/oauth2 v0.26.0
+	golang.org/x/oauth2 v0.28.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
