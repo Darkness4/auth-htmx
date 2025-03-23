@@ -9,10 +9,6 @@ issues:
     - EXC0012
     - EXC0015
 
-run:
-  skip-files:
-    - metascheduler/metascheduler_error.go
-
 linters-settings:
   staticcheck:
     checks: ['all']
