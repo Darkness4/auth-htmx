@@ -4,6 +4,7 @@ Auth HTMX is a simple demonstration of OAuth2/OIDC in combination with HTMX, wri
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
@@ -34,7 +35,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
 	"github.com/rs/zerolog/log"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 	"gopkg.in/yaml.v3"
 )
 
@@ -53,7 +54,7 @@ var (
 	dbFile string
 )
 
-var app = &cli.App{
+var app = &cli.Command{
 	Name:    "auth-htmx",
 	Version: version,
 	Usage:   "Demo of Auth and HTMX.",
@@ -61,7 +62,7 @@ var app = &cli.App{
 		&cli.StringFlag{
 			Name:  "csrf.secret",
 			Usage: "A 32 bytes hex secret",
-			Action: func(_ *cli.Context, s string) error {
+			Action: func(_ context.Context, _ *cli.Command, s string) error {
 				data, err := hex.DecodeString(s)
 				if err != nil {
 					panic(err)
@@ -69,13 +70,13 @@ var app = &cli.App{
 				key = data
 				return nil
 			},
-			EnvVars: []string{"CSRF_SECRET"},
+			Sources: cli.EnvVars("CSRF_SECRET"),
 		},
 		&cli.StringFlag{
 			Name:        "jwt.secret",
 			Usage:       "A unique string secret",
 			Destination: &jwtSecret,
-			EnvVars:     []string{"JWT_SECRET"},
+			Sources:     cli.EnvVars("JWT_SECRET"),
 		},
 		&cli.StringFlag{
 			Name:        "config.path",
@@ -83,26 +84,25 @@ var app = &cli.App{
 			Destination: &configPath,
 			Value:       "./config.yaml",
 			Aliases:     []string{"c"},
-			EnvVars:     []string{"CONFIG_PATH"},
+			Sources:     cli.EnvVars("CONFIG_PATH"),
 		},
 		&cli.StringFlag{
 			Name:        "public-url",
 			Usage:       "An URL pointing to the server.",
 			Destination: &publicURL,
 			Value:       "http://localhost:3000",
-			EnvVars:     []string{"PUBLIC_URL"},
+			Sources:     cli.EnvVars("PUBLIC_URL"),
 		},
 		&cli.StringFlag{
 			Name:        "db.path",
 			Value:       "./db.sqlite3",
 			Destination: &dbFile,
 			Usage:       "SQLite3 database file path.",
-			EnvVars:     []string{"DB_PATH"},
+			Sources:     cli.EnvVars("DB_PATH"),
 		},
 	},
 	Suggest: true,
-	Action: func(cCtx *cli.Context) error {
-		ctx := cCtx.Context
+	Action: func(ctx context.Context, _ *cli.Command) error {
 		log.Level(zerolog.DebugLevel)
 
 		// Parse config
@@ -266,7 +266,7 @@ func funcs() template.FuncMap {
 func main() {
 	_ = godotenv.Load(".env.local")
 	_ = godotenv.Load(".env")
-	if err := app.Run(os.Args); err != nil {
+	if err := app.Run(context.Background(), os.Args); err != nil {
 		log.Fatal().Err(err).Msg("app crashed")
 	}
 }

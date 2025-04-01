@@ -1,4 +1,4 @@
-// Package auth defines the authentication layer of the application.
+// Package oauth defines the authentication layer of the application.
 package oauth
 
 import (

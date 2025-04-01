@@ -1,4 +1,4 @@
-// The package database handles the methods and definition to manipulate a database.
+// Package database handles the methods and definition to manipulate a database.
 package database
 
 import (

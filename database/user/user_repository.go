@@ -53,7 +53,7 @@ func (r *Repository) AddCredential(
 		return err
 	}
 
-	return r.Queries.CreateCredential(ctx, database.CreateCredentialParams{
+	return r.CreateCredential(ctx, database.CreateCredentialParams{
 		ID:              credential.ID,
 		PublicKey:       credential.PublicKey,
 		AttestationType: credential.AttestationType,
@@ -102,7 +102,7 @@ func (r *Repository) Create(ctx context.Context, name string, displayName string
 		return nil, err
 	}
 
-	u, err := r.Queries.CreateUser(ctx, database.CreateUserParams{
+	u, err := r.CreateUser(ctx, database.CreateUserParams{
 		ID:          id,
 		Name:        name,
 		DisplayName: displayName,
@@ -129,9 +129,9 @@ func (r *Repository) GetOrCreateByName(ctx context.Context, name string) (*User,
 	return u, nil
 }
 
-// Gea user from the database.
+// Get a user from the database.
 func (r *Repository) Get(ctx context.Context, id []byte) (*User, error) {
-	u, err := r.Queries.GetUser(ctx, id)
+	u, err := r.GetUser(ctx, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrUserNotFound
 	} else if err != nil {
@@ -148,7 +148,7 @@ func (r *Repository) Get(ctx context.Context, id []byte) (*User, error) {
 
 // GetByName a user from the database.
 func (r *Repository) GetByName(ctx context.Context, name string) (*User, error) {
-	u, err := r.Queries.GetUserByName(ctx, name)
+	u, err := r.GetUserByName(ctx, name)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrUserNotFound
 	} else if err != nil {
@@ -167,7 +167,7 @@ func (r *Repository) getCredentialsByUser(
 	ctx context.Context,
 	id []byte,
 ) ([]webauthn.Credential, error) {
-	cc, err := r.Queries.GetCredentialsByUser(ctx, id)
+	cc, err := r.GetCredentialsByUser(ctx, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrCredentialNotFound
 	} else if err != nil {
@@ -187,7 +187,7 @@ func (r *Repository) RemoveCredential(
 	id []byte,
 	credentialID []byte,
 ) error {
-	return r.Queries.DeleteCredential(ctx, database.DeleteCredentialParams{
+	return r.DeleteCredential(ctx, database.DeleteCredentialParams{
 		ID:     credentialID,
 		UserID: id,
 	})
