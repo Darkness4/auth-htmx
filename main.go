@@ -45,7 +45,7 @@ var (
 	//go:embed static
 	static    embed.FS
 	version   = "dev"
-	key       []byte
+	hexKey    string
 	jwtSecret string
 
 	configPath string
@@ -60,17 +60,10 @@ var app = &cli.Command{
 	Usage:   "Demo of Auth and HTMX.",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "csrf.secret",
-			Usage: "A 32 bytes hex secret",
-			Action: func(_ context.Context, _ *cli.Command, s string) error {
-				data, err := hex.DecodeString(s)
-				if err != nil {
-					panic(err)
-				}
-				key = data
-				return nil
-			},
-			Sources: cli.EnvVars("CSRF_SECRET"),
+			Name:        "csrf.secret",
+			Usage:       "A 32 bytes hex secret",
+			Destination: &hexKey,
+			Sources:     cli.EnvVars("CSRF_SECRET"),
 		},
 		&cli.StringFlag{
 			Name:        "jwt.secret",
@@ -104,6 +97,11 @@ var app = &cli.Command{
 	Suggest: true,
 	Action: func(ctx context.Context, _ *cli.Command) error {
 		log.Level(zerolog.DebugLevel)
+
+		key, err := hex.DecodeString(hexKey)
+		if err != nil {
+			panic(err)
+		}
 
 		// Parse config
 		var config auth.Config
