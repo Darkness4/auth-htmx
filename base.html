@@ -1,78 +1,49 @@
 {{ define "base" }}
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta hx-preserve="true" charset="UTF-8" />
-    <meta
-      hx-preserve="true"
-      name="viewport"
-      content="width=device-width, initial-scale=1"
-    />
-    <script
-      async
-      hx-preserve="true"
-      src="https://analytics.eu.umami.is/script.js"
-      data-website-id="90ba5459-dc23-4ea8-a21f-829ec7170ecf"
-    ></script>
-    <script
-      hx-preserve="true"
-      src="https://unpkg.com/htmx.org@1.9.2"
-      integrity="sha384-L6OqL9pRWyyFU3+/bjdSri+iIphTN/bvYyM37tICVyOJkWZLpP2vGn6VUEXgzg6h"
-      crossorigin="anonymous"
-    ></script>
-    <link
-      hx-preserve="true"
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@picocss/pico@next/css/pico.min.css"
-    />
-    <script
-      hx-preserve="true"
-      src="https://unpkg.com/htmx.org/dist/ext/head-support.js"
-    ></script>
-    <script
-      hx-preserve="true"
-      src="https://unpkg.com/hyperscript.org@0.9.12"
-      integrity="sha384-+Uth1QzYJsTjnS5SXVN3fFO4I32Y571xIuv53WJ2SA7y5/36tKU1VCutONAmg5eH"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      hx-preserve="true"
-      src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"
-      integrity="sha384-uuNfwJfjOG2ukYi4eAB11/t3lP4Zjf75a3UhgkLzEpiX8JpJfacpG7Ye+0tiVMxT"
-      crossorigin="anonymous"
-    ></script>
-    <script hx-preserve="true">
-      addEventListener('DOMContentLoaded', (event) => {
-        window.notyf = new Notyf({
-          duration: 10000,
-          ripple: false,
-          dismissible: true,
-        });
 
-        document.addEventListener('htmx:responseError', function (e) {
-          notyf.error(e.detail.xhr.response);
-        });
+<head>
+  <meta hx-preserve="true" charset="UTF-8" />
+  <meta hx-preserve="true" name="viewport" content="width=device-width, initial-scale=1" />
+  <script defer hx-preserve="true" src="https://cloud.umami.is/script.js"
+    data-website-id="90ba5459-dc23-4ea8-a21f-829ec7170ecf"></script>
+  <script hx-preserve="true" src="https://unpkg.com/htmx.org@1.9.2"
+    integrity="sha384-L6OqL9pRWyyFU3+/bjdSri+iIphTN/bvYyM37tICVyOJkWZLpP2vGn6VUEXgzg6h"
+    crossorigin="anonymous"></script>
+  <link hx-preserve="true" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@next/css/pico.min.css" />
+  <script hx-preserve="true" src="https://unpkg.com/htmx.org/dist/ext/head-support.js"></script>
+  <script hx-preserve="true" src="https://unpkg.com/hyperscript.org@0.9.12"
+    integrity="sha384-+Uth1QzYJsTjnS5SXVN3fFO4I32Y571xIuv53WJ2SA7y5/36tKU1VCutONAmg5eH"
+    crossorigin="anonymous"></script>
+  <script hx-preserve="true" src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"
+    integrity="sha384-uuNfwJfjOG2ukYi4eAB11/t3lP4Zjf75a3UhgkLzEpiX8JpJfacpG7Ye+0tiVMxT"
+    crossorigin="anonymous"></script>
+  <script hx-preserve="true">
+    addEventListener('DOMContentLoaded', (event) => {
+      window.notyf = new Notyf({
+        duration: 10000,
+        ripple: false,
+        dismissible: true,
       });
-    </script>
-    <link
-      hx-preserve="true"
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css"
-      integrity="sha384-snpJ3knpH6avB6cP1vPkNdmRzCYaCpom/3TNOyvo189BiogXYXQfXkyYpZ2/xADs"
-      crossorigin="anonymous"
-    />
-    <link
-      hx-preserve="true"
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/flexboxgrid/6.3.1/flexboxgrid.min.css"
-      integrity="sha512-YHuwZabI2zi0k7c9vtg8dK/63QB0hLvD4thw44dFo/TfBFVVQOqEG9WpviaEpbyvgOIYLXF1n7xDUfU3GDs0sw=="
-      crossorigin="anonymous"
-    />
-    <link hx-preserve="true" rel="stylesheet" href="/static/app.css" />
-    {{ template "head" . }}
-  </head>
-  <body hx-history="false" hx-ext="head-support">
-    {{ template "body" . }}
-  </body>
+
+      document.addEventListener('htmx:responseError', function (e) {
+        notyf.error(e.detail.xhr.response);
+      });
+    });
+  </script>
+  <link hx-preserve="true" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css"
+    integrity="sha384-snpJ3knpH6avB6cP1vPkNdmRzCYaCpom/3TNOyvo189BiogXYXQfXkyYpZ2/xADs" crossorigin="anonymous" />
+  <link hx-preserve="true" rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/flexboxgrid/6.3.1/flexboxgrid.min.css"
+    integrity="sha512-YHuwZabI2zi0k7c9vtg8dK/63QB0hLvD4thw44dFo/TfBFVVQOqEG9WpviaEpbyvgOIYLXF1n7xDUfU3GDs0sw=="
+    crossorigin="anonymous" />
+  <link hx-preserve="true" rel="stylesheet" href="/static/app.css" />
+  {{ template "head" . }}
+</head>
+
+<body hx-history="false" hx-ext="head-support">
+  {{ template "body" . }}
+</body>
+
 </html>
 {{ end }}
