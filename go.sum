@@ -248,6 +248,8 @@ github.com/fxamacker/cbor/v2 v2.7.0 h1:iM5WgngdRBanHcxugY4JySA0nk1wZorNOpTgCMedv
 github.com/fxamacker/cbor/v2 v2.7.0/go.mod h1:pxXPTn3joSm21Gbwsv0w9OSA2y1HFR9qXEeXQVeNoDQ=
 github.com/fxamacker/cbor/v2 v2.8.0 h1:fFtUGXUzXPHTIUdne5+zzMPTfffl3RD5qYnkY40vtxU=
 github.com/fxamacker/cbor/v2 v2.8.0/go.mod h1:vM4b+DJCtHn+zz7h3FFp/hDAI9WNWCsZj23V5ytsSxQ=
+github.com/fxamacker/cbor/v2 v2.9.0 h1:NpKPmjDBgUfBms6tr6JZkTHtfFGcMKsw3eGcmD/sapM=
+github.com/fxamacker/cbor/v2 v2.9.0/go.mod h1:vM4b+DJCtHn+zz7h3FFp/hDAI9WNWCsZj23V5ytsSxQ=
 github.com/gabriel-vasile/mimetype v1.4.1 h1:TRWk7se+TOjCYgRth7+1/OYLNiRNIotknkFtf/dnN7Q=
 github.com/gabriel-vasile/mimetype v1.4.1/go.mod h1:05Vi0w3Y9c/lNvJOdmIwvrrAhX3rYhfQQCaf9VJcv7M=
 github.com/go-chi/chi/v5 v5.0.11 h1:BnpYbFZ3T3S1WMpD79r7R5ThWX40TaFB7L31Y8xqSwA=
@@ -306,6 +308,8 @@ github.com/go-webauthn/webauthn v0.13.1 h1:Q3/GLXsckVJUPE+BGR6ex26yRIiZ/X2ITaMeS
 github.com/go-webauthn/webauthn v0.13.1/go.mod h1:HeaBromTjgMg1sHZOzyjEiqcrk4Og7mxafDTWDepaXI=
 github.com/go-webauthn/webauthn v0.13.3 h1:rvX539Gy9U4xAuFQRFJtkgoH5E1GEUyIVbHUDC89Mo4=
 github.com/go-webauthn/webauthn v0.13.3/go.mod h1:H9EdVnxXFMMJyx8Nd/OL3aFFEop3Rb+Af1naR0IbuUQ=
+github.com/go-webauthn/webauthn v0.13.4 h1:q68qusWPcqHbg9STSxBLBHnsKaLxNO0RnVKaAqMuAuQ=
+github.com/go-webauthn/webauthn v0.13.4/go.mod h1:MglN6OH9ECxvhDqoq1wMoF6P6JRYDiQpC9nc5OomQmI=
 github.com/go-webauthn/x v0.1.8 h1:f1C6k1AyUlDvnIzWSW+G9rN9nbp1hhLXZagUtyxZ8nc=
 github.com/go-webauthn/x v0.1.8/go.mod h1:i8UNlGVt3oy6oAFcP4SZB1djZLx/4pbekCbWowjTaJg=
 github.com/go-webauthn/x v0.1.9 h1:v1oeLmoaa+gPOaZqUdDentu6Rl7HkSSsmOT6gxEQHhE=
