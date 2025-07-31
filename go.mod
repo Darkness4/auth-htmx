@@ -9,7 +9,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.14.1
 	github.com/go-chi/chi/v5 v5.2.2
 	github.com/go-webauthn/webauthn v0.13.4
-	github.com/golang-jwt/jwt/v5 v5.2.3
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/gorilla/csrf v1.7.3
 	github.com/joho/godotenv v1.5.1
