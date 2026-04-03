@@ -8,7 +8,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/coreos/go-oidc/v3 v3.17.0
 	github.com/go-chi/chi/v5 v5.2.5
-	github.com/go-webauthn/webauthn v0.16.1
+	github.com/go-webauthn/webauthn v0.16.2
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/gorilla/csrf v1.7.3
@@ -81,7 +81,7 @@ require (
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.5+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
-	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.9.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.1 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.1 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
@@ -154,6 +154,7 @@ require (
 	github.com/neo4j/neo4j-go-driver v1.8.1-0.20200803113522-b626aa943eba // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/pganalyze/pg_query_go/v4 v4.2.4-0.20231205012101-7463430c7b73 // indirect
+	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.16 // indirect
 	github.com/pingcap/errors v0.11.5-0.20240311024730-e056997136bb // indirect
 	github.com/pingcap/failpoint v0.0.0-20240528011301-b51a646c7c86 // indirect
@@ -174,6 +175,7 @@ require (
 	github.com/spf13/pflag v1.0.7 // indirect
 	github.com/stoewer/go-strcase v1.2.0 // indirect
 	github.com/tetratelabs/wazero v1.9.0 // indirect
+	github.com/tinylib/msgp v1.6.3 // indirect
 	github.com/wasilibs/go-pgquery v0.0.0-20250409022910-10ac41983c07 // indirect
 	github.com/wasilibs/wazerox v0.0.0-20231208014050-e6b725634531 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
