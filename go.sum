@@ -352,6 +352,8 @@ github.com/go-webauthn/webauthn v0.16.1 h1:x5/SSki5/aIfogaRukqvbg/RXa3Sgxy/9vU7U
 github.com/go-webauthn/webauthn v0.16.1/go.mod h1:RBS+rtQJMkE5VfMQ4diDA2VNrEL8OeUhp4Srz37FHbQ=
 github.com/go-webauthn/webauthn v0.16.2 h1:n116UuvIa7nUVGFP2hO9U24gBqhJTcmbU3ph0wgVzFM=
 github.com/go-webauthn/webauthn v0.16.2/go.mod h1:R2xjJxSPat5PYKg5r6cUmqXgbHtbv4GmF6uGkqFMLNI=
+github.com/go-webauthn/webauthn v0.16.3 h1:RorP0c6VbaKP0i0Jxf/vAf7EFb2lmdLW8GLKITeaN5A=
+github.com/go-webauthn/webauthn v0.16.3/go.mod h1:R2xjJxSPat5PYKg5r6cUmqXgbHtbv4GmF6uGkqFMLNI=
 github.com/go-webauthn/x v0.1.8 h1:f1C6k1AyUlDvnIzWSW+G9rN9nbp1hhLXZagUtyxZ8nc=
 github.com/go-webauthn/x v0.1.8/go.mod h1:i8UNlGVt3oy6oAFcP4SZB1djZLx/4pbekCbWowjTaJg=
 github.com/go-webauthn/x v0.1.9 h1:v1oeLmoaa+gPOaZqUdDentu6Rl7HkSSsmOT6gxEQHhE=
