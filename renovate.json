@@ -9,6 +9,10 @@
     {
       "matchDepTypes": ["devDependencies"],
       "automerge": true
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "pinDigests": true
     }
   ],
   "rebaseWhen": "conflicted",
