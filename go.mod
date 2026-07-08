@@ -2,7 +2,7 @@ module github.com/Darkness4/auth-htmx
 
 go 1.25.0
 
-toolchain go1.26.4
+toolchain go1.26.5
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
