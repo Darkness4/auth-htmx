@@ -16,7 +16,7 @@ require (
 	github.com/rs/zerolog v1.35.1
 	github.com/sqlc-dev/sqlc v1.31.1
 	github.com/urfave/cli/v2 v2.27.7
-	github.com/urfave/cli/v3 v3.10.1
+	github.com/urfave/cli/v3 v3.11.0
 	golang.org/x/oauth2 v0.36.0
 	gopkg.in/yaml.v3 v3.0.1
 )
